@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--  >script src="index.js"></script -->
+<script src="../index.js"></script>
+</head>
+<body>
+
+<div id="helloDemoTemplates">
+<template id="helloDemoTemplate">
+  Hello World! It is ${time}.
+</template>
+</div>
+
+<div id="formDemoTemplates">
+<template id="formInstructions">
+ <p>Change the form values and see the text change. Open debugger to see logging by controller.</p>
+</template>
+<template id="formDemoTemplate">
+ <p>
+  Name:<input type="text" value="${name}"></input>
+  Status:<select value="${status}"><option>pending</option><option>approved</option><option>rejected</option></select>
+  Paid:<input type="checkbox" checked="${paid}"></input>
+  Accepted Terms:<input name="terms" type="radio" value="Yes" checked="${terms}">Yes</input><input name="terms" type="radio" value="No" checked="${terms}">No</input>
+ </p>
+ <p>
+  Meals Required:<select style="vertical-align:text-top" value="${meals}" multiple><option>breakfast</option><option>lunch</option><option>dinner</option></select>
+  Notes:<textarea style="vertical-align:text-top" value="${notes}"></textarea>
+ </p>
+ <p>Name: ${name} Status: ${status} Paid: ${paid} Accepted Terms: ${terms} Meals: ${meals}</p>
+ <p id="noteToggle" style="display:block">Notes: (<a href="#toggle">show/hide</a>)<span id="notes" style="display:block">${notes}</span></p>
+ <p>${$import("#formInstructions")}</p>
+</template>
+</div>
+
+<div id="tableDemoTemplates">
+<template id="table">
+ <table>
+  <tr><th>${headers.join("</th><th>")}</th></tr>
+  <tr><td>${rows.map((row) => { return row.join("</td><td>"); }).join("</td></tr><tr><td>")}</td></tr>
+ </table>
+</template>
+<template id="tableDemoTemplate">
+ ${$import("#table",{headers,rows})}
+</template>
+</div>
+
+<div id="demos">
+
+<p>Hello World <a href="#hello" style="text-decoration:none;" title="expand/contract">&#8679;</a></p>
+<div id="helloDemo">
+	<div id="helloDemoView"></div>
+	<pre id="helloDemoSource""></pre>
+</div>
+
+<p>Form <a href="#form" style="text-decoration:none" title="expand/contract">&#8681;</a></p>
+<div id="formDemo" style="display:none">
+	<div id="formDemoView"></div>
+	<pre id="formDemoSource"></pre>
+</div>
+	
+<p>Table <a href="#table" style="text-decoration:none;" title="expand/contract">&#8681;</a></p>
+<div id="tableDemo" style="display:none">
+	<div id="tableDemoView"></div>
+	<pre id="tableDemoSource"></pre>
+</div>	
+
+	
+</div>
+
+<script>
+function EntitytoHTML(charDef) {
+	EntitytoHTML.converter.innerHTML = charDef;
+	return EntitytoHTML.converter.innerText;
+}
+EntitytoHTML.converter = document.createElement("p");
+
+function renderSource(demo) {
+	txt = document.getElementById(demo+"DemoTemplates").innerHTML + "\n";
+	txt += "<script>"+document.getElementById(demo+"DemoScript").innerHTML+"<"+"/script>";
+	txt = txt.replace(/Template/g,"View").replace(/,{template.*}/g,"").replace(/<template (?=.*View)/g,"<div ");
+	document.getElementById(demo+"DemoSource").innerText = txt;
+}
+function toggleExpander(hash) {
+	const e = document.querySelector("a[href='"+hash+"']");
+	e.innerHTML = (e.innerHTML===EntitytoHTML("&#8681;") ? "&#8679;" : "&#8681;");
+}
+toggleExpander.arrow = document.createElement("a");
+toggleExpander.arrow.innerHTML = "&#8681;";
+
+Titen.bind(null,"#demos",{
+	"hello": {
+		selector: "#helloDemo",
+		sideffect: (event,view) => { renderSource("hello"); toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
+	},
+	"form": {
+		selector: "#formDemo",
+		sideffect: (event,view) => { renderSource("form");  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
+	},
+	"table": {
+		selector: "#tableDemo",
+		sideffect: (event,view) => { renderSource("table");  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
+	}
+});
+</script>
+
+<script id="helloDemoScript">
+  const model = Titen.bind({time: new Date().toLocaleTimeString()},"#helloDemoView",null,{template:"#helloDemoTemplate"});
+  setInterval(() => { model.time = new Date().toLocaleTimeString()},1000);
+</script>
+<script id="formDemoScript">
+ const controller = {
+ "toggle": {
+  selector: "#notes",
+  sideffect: (event,view) =>  view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"),
+  cascade: true
+   },
+ "notes": {
+  selector: "#noteToggle",
+  test: (event,model) => typeof(model.notes)!=="undefined",
+  sideffect: (event,view,model) => view.style.display = (model.notes.trim().length===0 ? "none" : "block"),
+  cascade: true
+   },
+ ".*?": {
+  sideffect: (event) => console.log(event)
+   }
+ }
+ Titen.bind({name:"Bill"},"#formDemoView",controller,{template:"#formDemoTemplate",reactive:true});
+</script>
+<script id="tableDemoScript">
+  Titen.bind({headers:["column one","column two"],rows:[[1,2],[2,1]]},"#tableDemoView",null,{template:"#tableDemoTemplate"});
+</script>
+
+<script>
+renderSource("hello");
+</script>
+
+</body>
+</html>
