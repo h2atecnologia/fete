@@ -1,3 +1,4 @@
+//MIT License Copyright (c) 2017 AnyWhichWay, LLC and Simon Y. Blackwell
 "use strict";
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -185,16 +186,23 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 									element = replacement;
 									element.ftLstnrs = new Set();
 								}
-								if (property && (options.reactive || view.getAttribute("data-reactive"))) {
+								var reactive = options.reactive || view.getAttribute("data-reactive");
+								if (property) {
 									var listener = function listener(event) {
-										if (event.target.type === "checkbox") model[property] = event.target.checked;else if (event.target.type === "select-multiple") {
-											var values = [];
+										var value = event.target.type === "checkbox" ? event.target.checked : event.target.type === "select-multiple" ? [] : event.target.value;
+										if (event.target.type === "select-multiple") {
 											for (var _i4 = 0; event.target[_i4]; _i4++) {
-												if (event.target[_i4].selected) values.push(event.target[_i4].value);
-											}model[property] = values;
-										} else model[property] = event.target.value;
-										event.target.model = model;
-										F.rtr(event);
+												if (event.target[_i4].selected) value.push(event.target[_i4].value);
+											}
+										}
+										if (typeof reactive === "function") {
+											reactive(event, model, property, value);
+										} else {
+											!reactive || (model[property] = value);
+											event.target.model = model;
+											event.target.property = property;
+											F.rtr(event);
+										}
 									};
 									element.ftLstnrs.add(listener);
 									element.addEventListener("change", listener);
@@ -318,23 +326,28 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 		},
 		rtr: function rtr(event, next) {
 			var target = event.retarget || event.target,
-			    cntrlr = target.controller;
-			var model = target.model ? JSON.parse(JSON.stringify(target.model)) : {};
+			    cntrlr = target.controller,
+			    cntrlrtype = typeof cntrlr === "undefined" ? "undefined" : _typeof(cntrlr),
+			    model = target.model ? JSON.parse(JSON.stringify(target.model)) : {};
 			deepFreeze(model);
-			!cntrlr || Object.keys(cntrlr).every(function (key) {
-				var state = void 0,
-				    test = cntrlr[key].test,
-				    rslt = false;;
-				if (target.hash) state = target.hash.substring(1);else if (typeof test === "function") rslt = test(event, model);
-				if (rslt || state && new RegExp(key).test(state)) {
-					target.id || (target.id = (Math.random() + "").substring(2));
-					event.type === "popstate" || rslt || history.pushState({ href: target.href, view: target.id }, cntrlr[key].title || state);
-					var view = cntrlr[key].selector ? document.querySelector(cntrlr[key].selector) : target;
-					if (typeof cntrlr[key].sideffect === "function") cntrlr[key].sideffect(event, view, model);
-					return cntrlr[key].cascade;
-				}
-				return true;
-			});
+			if (cntrlrtype === "function") {
+				cntrlr(event, target.model, target.property, target.value);
+			} else if (cntrlr && cntrlrtype === "object") {
+				Object.keys(cntrlr).every(function (key) {
+					var state = void 0,
+					    test = cntrlr[key].test,
+					    rslt = false;;
+					if (target.hash) state = target.hash.substring(1);else if (typeof test === "function") rslt = test(event, model);
+					if (rslt || state && new RegExp(key).test(state)) {
+						target.id || (target.id = (Math.random() + "").substring(2));
+						event.type === "popstate" || rslt || history.pushState({ href: target.href, view: target.id }, cntrlr[key].title || state);
+						var view = cntrlr[key].selector ? document.querySelector(cntrlr[key].selector) : target;
+						if (typeof cntrlr[key].sideffect === "function") cntrlr[key].sideffect(event, view, model);
+						return cntrlr[key].cascade;
+					}
+					return true;
+				});
+			}
 			event.preventDefault();
 			event.stopPropagation();
 			!next || next();

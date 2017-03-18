@@ -1,3 +1,4 @@
+//MIT License Copyright (c) 2017 AnyWhichWay, LLC and Simon Y. Blackwell
 (function() {
 	"use strict";
 	function deepFreeze(object) {
@@ -125,16 +126,21 @@
 									element = replacement;
 									element.ftLstnrs = new Set();
 								}
-								if(property && (options.reactive || view.getAttribute("data-reactive"))) {
+								const reactive = options.reactive || view.getAttribute("data-reactive");
+								if(property) {
 									const listener = (event) => {
-										if(event.target.type==="checkbox") model[property] = event.target.checked;
-										else if(event.target.type==="select-multiple") {
-											const values = [];
-											for(let i=0;event.target[i];i++) if(event.target[i].selected) values.push(event.target[i].value);
-											model[property] = values;
-										} else model[property] = event.target.value;
-										event.target.model = model;
-										F.rtr(event);
+										const value = (event.target.type==="checkbox" ? event.target.checked : (event.target.type==="select-multiple" ? [] : event.target.value));
+										if(event.target.type==="select-multiple") {
+											for(let i=0;event.target[i];i++) if(event.target[i].selected) value.push(event.target[i].value);
+										}
+										if(typeof(reactive)==="function") {
+											reactive(event,model,property,value);
+										} else {
+											!reactive || (model[property] = value);
+											event.target.model = model;
+											event.target.property = property;
+											F.rtr(event);
+										}
 									}
 									element.ftLstnrs.add(listener);
 									element.addEventListener("change",listener);
@@ -206,22 +212,27 @@
 			},
 			rtr: function(event,next) {
 				const target = event.retarget || event.target,
-					cntrlr = target.controller;
-				const model = (target.model ? JSON.parse(JSON.stringify(target.model)) : {});
+					cntrlr = target.controller,
+					cntrlrtype = typeof(cntrlr),
+				model = (target.model ? JSON.parse(JSON.stringify(target.model)) : {});
 				deepFreeze(model);
-				!cntrlr || Object.keys(cntrlr).every((key) => {
-					let state, test = cntrlr[key].test, rslt = false;;
-					if(target.hash) state = target.hash.substring(1);
-					else if(typeof(test)==="function") rslt = test(event,model);
-					if(rslt || (state && new RegExp(key).test(state))) {
-						target.id || (target.id = (Math.random()+"").substring(2));
-						event.type==="popstate" || rslt || history.pushState({href:target.href,view:target.id},cntrlr[key].title||state);
-						const view = (cntrlr[key].selector ? document.querySelector(cntrlr[key].selector) : target);
-						if(typeof(cntrlr[key].sideffect)==="function") cntrlr[key].sideffect(event,view,model);
-						return cntrlr[key].cascade;
-					}
-					return true;
-				});
+				if(cntrlrtype==="function") {
+					cntrlr(event,target.model,target.property,target.value);
+				} else if(cntrlr && cntrlrtype==="object") {
+					Object.keys(cntrlr).every((key) => {
+						let state, test = cntrlr[key].test, rslt = false;;
+						if(target.hash) state = target.hash.substring(1);
+						else if(typeof(test)==="function") rslt = test(event,model);
+						if(rslt || (state && new RegExp(key).test(state))) {
+							target.id || (target.id = (Math.random()+"").substring(2));
+							event.type==="popstate" || rslt || history.pushState({href:target.href,view:target.id},cntrlr[key].title||state);
+							const view = (cntrlr[key].selector ? document.querySelector(cntrlr[key].selector) : target);
+							if(typeof(cntrlr[key].sideffect)==="function") cntrlr[key].sideffect(event,view,model);
+							return cntrlr[key].cascade;
+						}
+						return true;
+					});
+				}
 				event.preventDefault();
 				event.stopPropagation();
 				!next || next();
