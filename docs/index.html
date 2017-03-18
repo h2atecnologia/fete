@@ -1,10 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-<!--  >script src="index.js"></script -->
-<script src="../index.js"></script>
+<link rel="stylesheet" href="main.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.0/gh-fork-ribbon.min.css" />
+<!--[if lt IE 9]>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.0/gh-fork-ribbon.ie.min.css" />
+<![endif]-->
+<script src="fete.js"></script>
 </head>
 <body>
+
+<h1><a class="github-fork-ribbon" href="https://github.com/anywhichway/fete" title="Fork me on GitHub">Fork me on GitHub</a>Fete</h1>
+
+<h2>Introduction</h2>
+
+Fete is an MIT licensed light weight (10K raw, 5.6K minified, 2.5K gzipped) JavaScript Front End reactive TEmplate library with routers/controllers and the followng features:
+
+<ul>
+<li>Built-in bindings to standard HTML UI controls: input, checkbox, radio, textarea, select, multi-select.</li>
+<li>Uniform JavaScript string template syntax for HTML tag attributes and content, i.e. ${...expressions}.</li>
+<li>Optional two-way data binding.</li>
+<li>Component based routers/controllers.</li>
+<li>Cascading regular expression based route matching.</li>
+<li>Control flow based on UI events or data state.</li>
+<li>Straight-forward model-view-controller paradigm where models or controllers are optional.</li>
+<li>Views are just native HTMLElements</li>
+</ul>
+
+<h2>Examples</h2>
+<p>Use the arrows to expand and contract the examples which basic use documentation and source code.</p>
+<div id="feteDemoTemplates">
 
 <div id="helloDemoTemplates">
 <template id="helloDemoTemplate">
@@ -28,6 +53,7 @@
   Notes:<textarea style="vertical-align:text-top" value="${notes}"></textarea>
  </p>
  <p>Name: ${name} Status: ${status} Paid: ${paid} Accepted Terms: ${terms} Meals: ${meals}</p>
+ <p>${JSON.stringify(this)}
  <p id="noteToggle" style="display:block">Notes: (<a href="#toggle">show/hide</a>)<span id="notes" style="display:block">${notes}</span></p>
  <p>${$import("#formInstructions")}</p>
 </template>
@@ -45,95 +71,140 @@
 </template>
 </div>
 
-<div id="demos">
-
-<p>Hello World <a href="#hello" style="text-decoration:none;" title="expand/contract">&#8679;</a></p>
-<div id="helloDemo">
-	<div id="helloDemoView"></div>
-	<pre id="helloDemoSource""></pre>
 </div>
 
-<p>Form <a href="#form" style="text-decoration:none" title="expand/contract">&#8681;</a></p>
+<div id="demos">
+
+<h3>Hello World <a href="#hello" style="text-decoration:none;" title="expand/contract">&#8679;</a></h3>
+<div id="helloDemo">
+	<ul>
+	<li>JavaScript string templates can be used within HTML. They can reference the properties of the currently bound model.</li>
+	<li>Fete.bind(model,view,controller) links a model to a view which is managed by a controller. The controller is optional.
+	By default the model is updated by the view and reactively causes updates to other areas of the view referenced by the updated property.</li>
+    <li>Fete.bind returns a Proxy for the model in a reactive state so that changes can be made directly to drive view updates.</li>
+    </ul>
+    <p>A clock that updates every second is a simple example of using this capability.</p>
+	<div id="helloDemoView"></div>
+	<pre id="helloDemoSource"></pre>
+</div>
+
+<h3>Form <a href="#form" style="text-decoration:none" title="expand/contract">&#8681;</a></h3>
 <div id="formDemo" style="display:none">
+	<ul>
+	<li>JavaScript string templates can be used as attribute values. The nuances of checked and selected state handling 
+	or inner content for textareas are handled automatically.</li>
+	<li>Standard JavaScript can be used within templates. The value 'this' is associated with the model currently bound to the view.</li>
+	<li>The content of other views can be imported using HTMLElement ids. These will typically be template tag sections, but do not have to be.</li>
+	<li>A model can be activated prior to passing it to .bind.</li>
+	<li>Fete.bind(model,view,controller) binds a model to a view which is managed by a controller.</li>
+    <li>A controller is an object the keys of which operate as regular expressions in a switch to match hyperlink #hash values.</li>
+    <li>Controller switch sections can also be activated by a test function which looks at the body of a read-only copy of the currently bound model.
+    <li>Controller switch sections can access another view by providing a selector. They can also cause side effects like toggling display.</li>
+    <li>Side effects get called with the originating event, the view associated with the selector or the current target if none, and a read-only copy
+    of the model.</li>
+    <li>If a switch section includes a true value for 'cascade' then the next switch statement is evaluated.</li>
+    </ul>
 	<div id="formDemoView"></div>
 	<pre id="formDemoSource"></pre>
 </div>
 	
-<p>Table <a href="#table" style="text-decoration:none;" title="expand/contract">&#8681;</a></p>
+<h3>Table <a href="#table" style="text-decoration:none;" title="expand/contract">&#8681;</a></h3>
 <div id="tableDemo" style="display:none">
+	<ul>
+	<li>Templates can operate like partials in Mustache based template engines in order to do standarized formatting.</li>
+	</ul>
 	<div id="tableDemoView"></div>
 	<pre id="tableDemoSource"></pre>
 </div>	
 
-	
+<h3>This Demo <a href="#fete" style="text-decoration:none;" title="expand/contract">&#8681;</a></h3>
+<div id="feteDemo"  style="display:none">
+	<ul>
+	<li>Providing a model to Fete.bind is optional. The top level of this demo is just a view with a controller.</li>
+	<li>Multiple model/view/controller bindings can exist on the same page.</li>
+	<li>Fete.bind can take an fourth argument to specify options:
+		<ul>
+		<li>two way reactivity (on by default)</li>
+		<li>A template to use as the initial source for a view. Required for multiple model/view/controller bindings.</li>
+		</ul>
+	<li>Nested views can have their own controllers and models. Just bind them after the parent view is bound.</li>
+	</ul>
+	<pre id="feteDemoSource"></pre>
 </div>
 
+<div id="feteDemoScript">
 <script>
-function EntitytoHTML(charDef) {
-	EntitytoHTML.converter.innerHTML = charDef;
-	return EntitytoHTML.converter.innerText;
-}
-EntitytoHTML.converter = document.createElement("p");
-
-function renderSource(demo) {
-	txt = document.getElementById(demo+"DemoTemplates").innerHTML + "\n";
-	txt += "<script>"+document.getElementById(demo+"DemoScript").innerHTML+"<"+"/script>";
-	txt = txt.replace(/Template/g,"View").replace(/,{template.*}/g,"").replace(/<template (?=.*View)/g,"<div ");
-	document.getElementById(demo+"DemoSource").innerText = txt;
-}
-function toggleExpander(hash) {
-	const e = document.querySelector("a[href='"+hash+"']");
-	e.innerHTML = (e.innerHTML===EntitytoHTML("&#8681;") ? "&#8679;" : "&#8681;");
-}
-toggleExpander.arrow = document.createElement("a");
-toggleExpander.arrow.innerHTML = "&#8681;";
-
-Titen.bind(null,"#demos",{
-	"hello": {
-		selector: "#helloDemo",
-		sideffect: (event,view) => { renderSource("hello"); toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
-	},
-	"form": {
-		selector: "#formDemo",
-		sideffect: (event,view) => { renderSource("form");  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
-	},
-	"table": {
-		selector: "#tableDemo",
-		sideffect: (event,view) => { renderSource("table");  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
-	}
+Fete.bind(null,"#demos",{
+  "hello": {
+    selector: "#helloDemo",
+    sideffect: (event,view) => { renderSource("hello",true); toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
+  },
+  "form": {
+    selector: "#formDemo",
+    sideffect: (event,view) => { renderSource("form",true);  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
+  },
+  "table": {
+    selector: "#tableDemo",
+    sideffect: (event,view) => { renderSource("table",true);  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
+  },
+  "fete": {
+    selector: "#feteDemo",
+    sideffect: (event,view) => { renderSource("fete");  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
+  }
 });
 </script>
-
 <script id="helloDemoScript">
-  const model = Titen.bind({time: new Date().toLocaleTimeString()},"#helloDemoView",null,{template:"#helloDemoTemplate"});
+  const model = Fete.bind({time: new Date().toLocaleTimeString()},"#helloDemoView",null,{template:"#helloDemoTemplate"});
   setInterval(() => { model.time = new Date().toLocaleTimeString()},1000);
 </script>
 <script id="formDemoScript">
- const controller = {
- "toggle": {
-  selector: "#notes",
-  sideffect: (event,view) =>  view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"),
-  cascade: true
+ const mymodel = Fete.activate({name:"Bill"});
+ Fete.bind(mymodel,"#formDemoView",{
+   "toggle": {
+     selector: "#notes",
+     sideffect: (event,view) =>  view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"),
+     cascade: true
    },
- "notes": {
-  selector: "#noteToggle",
-  test: (event,model) => typeof(model.notes)!=="undefined",
-  sideffect: (event,view,model) => view.style.display = (model.notes.trim().length===0 ? "none" : "block"),
-  cascade: true
+   "notes": {
+     selector: "#noteToggle",
+     test: (event,model) => typeof(model.notes)!=="undefined",
+     sideffect: (event,view,model) => view.style.display = (model.notes.trim().length===0 ? "none" : "block"),
+     cascade: true
    },
- ".*?": {
-  sideffect: (event) => console.log(event)
+   ".*?": {
+     sideffect: (event) => console.log(event)
    }
- }
- Titen.bind({name:"Bill"},"#formDemoView",controller,{template:"#formDemoTemplate",reactive:true});
+ },{template:"#formDemoTemplate",reactive:true});
 </script>
 <script id="tableDemoScript">
-  Titen.bind({headers:["column one","column two"],rows:[[1,2],[2,1]]},"#tableDemoView",null,{template:"#tableDemoTemplate"});
+  Fete.bind({headers:["column one","column two"],rows:[[1,2],[2,1]]},"#tableDemoView",null,{template:"#tableDemoTemplate"});
 </script>
-
+<script id="auxilliarytScript">
+//converts visual HTML representations of entities to their text representation
+function EntitytoHTML(charDef) {
+  EntitytoHTML.converter.innerHTML = charDef;
+  return EntitytoHTML.converter.innerText;
+}
+EntitytoHTML.converter = document.createElement("p");
+// modifies source to be that actually required for the example rather than that required to behave as a component of this demo.
+function renderSource(demo,convertTemplates) {
+  const source = document.getElementById(demo+"DemoScript").innerHTML;
+  let txt = document.getElementById(demo+"DemoTemplates").innerHTML + "\n";
+  txt += (source.indexOf("script>")===2 ? "" : "<script>")+source+(source.indexOf("script>")===2 ? "" : "<"+"/script>");
+  txt = (convertTemplates ? txt.replace(/Template/g,"View").replace(/,{template.*}/g,"").replace(/<template (id=.*View.*)(>)((?:.|\s)*?)<\/template>/gm,"<div $1$2$3</div>").replace(/&gt;/g,">").replace(/&lt;/g,"<") : txt);
+  document.getElementById(demo+"DemoSource").innerText = txt;
+}
+function toggleExpander(hash) {
+  const e = document.querySelector("a[href='"+hash+"']");
+  e.innerHTML = (e.innerHTML===EntitytoHTML("&#8681;") ? "&#8679;" : "&#8681;");
+}
+toggleExpander.arrow = document.createElement("a");
+toggleExpander.arrow.innerHTML = "&#8681;";
+</script>
 <script>
 renderSource("hello");
 </script>
-
+</div>
+<div style="text-align:center;">Copyright 2017, AnyWhichWay, LLC</div>
 </body>
 </html>
