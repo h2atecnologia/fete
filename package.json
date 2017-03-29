@@ -1,19 +1,29 @@
 {
   "name": "fete",
-  "version": "1.0.1",
-  "description": "Front End TEmplates - Light weight reactive JavaScript templates with optional two-way data binding, controllers and routers.",
+  "version": "1.2.0",
+  "description": "Front End TEmplates - Tiny (2.5K gzip) Front End TEmplates with routers, two way bindings or functional pipelines.",
   "engines": {
     
   },
   "license": "MIT",
   "scripts": {
-    "prepublish": "cp ./index.es5.js ./docs/fete.js && cp ./index.js ./browser/fete.es6.js && cp ./index.es5.js ./browser/fete.js"
+    "prepublish": "cp ./index.es5.js ./docs/fete.es5.js && cp ./index.js ./browser/fete.js && cp ./index.es5.js ./browser/fete.es5.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/anywhichway/fete.git"
   },
-  "keywords": [],
+  "keywords": [
+  	"template",
+  	"hyperApp",
+  	"hyperHTML",
+  	"Vue",
+  	"React",
+  	"Riot",
+  	"Ractive",
+  	"Angular",
+  	"Marko"
+  ],
   "author": "Simon Y. Blackwell <syblackwell@anywhichway.com> (http://www.github.com/anywhichway)",
   "bugs": {
     "url": "https://github.com/anywhichway/fete/issues"

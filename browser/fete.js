@@ -1,368 +1,315 @@
 //MIT License Copyright (c) 2017 AnyWhichWay, LLC and Simon Y. Blackwell
-"use strict";
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
-(function () {
+(function() {
+function evalInContext(js, context) {
+    //# Return the results of the in-line anonymous function we .call with the passed context
+    return function() { return eval(js); }.call(context);
+}
+let Fete;
+(function() {
 	"use strict";
-
 	function deepFreeze(object) {
-		!object || (typeof Object === "undefined" ? "undefined" : _typeof(Object)) !== object || Object.getOwnPropertyNames(object).forEach(function (key) {
-			var value = obj[key];
-			if (value && (typeof value === "undefined" ? "undefined" : _typeof(value)) === 'object') deepFreeze(value);
-		});
-		return Object.freeze(object);
+	  !object || typeof(Object)!==object || Object.getOwnPropertyNames(object).forEach((key) => {
+	    var value = obj[key];
+	    if (value && typeof value === 'object') deepFreeze(value);
+	  });
+	  return Object.freeze(object);
 	}
-
-	function routeHandler(e) {
-		if (e.target.tagName === "A" && e.target.host === window.location.host && e.target.hash) F.rtr(e, function (allow) {
-			if (!allow) {
-				e.preventDefault();
-			}
-		});
+	function tag(literals, ...substitutions) {
+	    const div = document.createElement("interpolation");
+	    literals = literals.raw
+	    for(var i=0; i < literals.length-1; i++) {
+	    	let literal = literals[i];
+	    	while(literal.indexOf("  ")==0) literal = literal.substring(1);
+	    	literal.length===0 || div.appendChild(document.createTextNode(literals[i]));
+	    	let items = substitutions[i];
+	    	Array.isArray(items) || (items=[items]);
+	    	for(let i=0;i<items.length;i++) {
+	        	let item=items[i],
+	        		substitution = (item instanceof Node ? item : document.createTextNode(item!==undefined && item!==null ? (i>0 ? "," : "") + item : ""));
+	        	div.appendChild(substitution);
+	    	}
+	    }
+	    let literal = literals[i].trimRight();
+		while(literal.indexOf("  ")==0) literal = literal.substring(1);
+	    literal.length===0 || div.appendChild(document.createTextNode(literals[i]));
+	    return div;
 	}
-	function popHandler(event) {
-		if (!event.state) return;
-		var prsr = document.createElement("a"),
-		    view = document.getElementById(event.state.view);
-		event.retarget = view;
-		prsr.href = event.state.href;
-		var _arr = ["href", "origin", "host", "protocol", "hostname", "pathname", "hash", "search"];
-		for (var _i = 0; _i < _arr.length; _i++) {
-			var key = _arr[_i];event.target[key] = prsr[key];
-		}F.rtr(event);
+	function getContent(view) {
+		return (typeof(view)==="object" && view  ? (view instanceof HTMLInputElement ? view.value : (view instanceof HTMLElement ? view.innerHTML : (view instanceof Node ? view.textContent : view))) : view);
 	}
-	window.addEventListener("popstate", popHandler);
-	var F = {
-		cView: null,
-		rndrs: new Map(),
-		imprts: {
-			$import: function $import(selector) {
-				var scope = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-				var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : { reactive: true };
-
-				var template = document.querySelector(selector),
-				    view = document.createElement("span");
-				if (!template) throw new Error("Template not found " + selector);
-				view.innerText = template.innerHTML.replace(/<(?=[A-Za-z\/]+?\>)/g, "\\u003c").replace(/(?=[A-Za-z]+?)>/g, "\\u003e").replace(/\&gt;/g, ">").replace(/\&lt;/g, "<");
-				F.bnd(scope, view, options);
-				return "<!DOCTYPE html>" + view.innerText.replace(/\\u003c/g, "<").replace(/\\u003e/g, ">");
-			},
-			$forEach: function $forEach(iterable, callback) {
-				var html = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
-
-				var str = "";
-				iterable.forEach(function (item, index, iterable) {
-					str += callback(item, index, iterable);
-				});
-				return (html ? "<!DOCTYPE html>" : "") + str;
-			}
-		},
-		actvt: function actvt(model) {
-			if (!model || model._views) return model;
-			Object.defineProperty(model, "_views", { enumerable: false, value: new Map() });
-			var proxy = new Proxy(model, {
-				set: function set(target, property, value) {
-					if (target[property] !== value) {
-						target[property] = value;
-						target._views.forEach(function (properties, view) {
-							if (properties[property]) {
-								if ((!view.style || view.style.display !== "none") && (!view.parentNode || view.parentNode.style.display != "none")) {
-									var rndrs = F.rndrs.get(view);
-									if (rndrs) {
-										var _iteratorNormalCompletion = true;
-										var _didIteratorError = false;
-										var _iteratorError = undefined;
-
-										try {
-											for (var _iterator = rndrs[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-												var _rndrer = _step.value;
-												_rndrer(proxy);
-											}
-										} catch (err) {
-											_didIteratorError = true;
-											_iteratorError = err;
-										} finally {
-											try {
-												if (!_iteratorNormalCompletion && _iterator.return) {
-													_iterator.return();
-												}
-											} finally {
-												if (_didIteratorError) {
-													throw _iteratorError;
-												}
-											}
-										}
-									}
-								}
-							}
-						});
-					}
-					return true;
-				},
-				get: function get(target, property) {
-					if (F.cView && typeof property === "string") {
-						var properties = target._views.get(F.cView) || {};
-						properties[property] = true;
-						target._views.set(F.cView, properties);
-					}
-					return target[property];
-				}
-			});
-			return proxy;
-		},
-		cmpl: function cmpl(view) {
-			var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : { reactive: true };
-
-			!options.reset || F.rndrs.delete(view);
-			var prntrndrs = F.rndrs.get(view);
-			if (prntrndrs) return prntrndrs;
-			prntrndrs = [];
-			F.rndrs.set(view, prntrndrs);
-			if (options.template) {
-				var model = view.model;
-				if (options.template instanceof HTMLElement) {
-					view.innerHTML = options.template.innerHTML;
-				} else if (options.template.indexOf("`") === 0 && options.template.lastIndexOf("`") === options.template.length - 1) {
-					view.innerHTML = options.template.substring(1, options.template.length - 1);
-				} else {
-					var template = document.querySelector(options.template);
-					if (!template) throw new Error("missing template " + options.template);
-					view.innerHTML = template.innerHTML;
-				}
-				view.model = model;
-			}
-			//if((view.innerHTML && view.innerHTML.indexOf("${")===-1) || (view.wholeText && view.wholeText.indexOf("${")===-1)) return;
-			var elements = view.childNodes;
-
-			var _loop = function _loop(i) {
-				var element = elements[i];
-				element.controller = view.controller;
-				element.ftLstnrs || (element.ftLstnrs = new Set());
-				var ttnLstnrs = element.ftLstnrs;
-				element.ftLstnrs.forEach(function (listener) {
-					var _arr2 = ["change", "keyup", "paste", "cut"];
-
-					for (var _i2 = 0; _i2 < _arr2.length; _i2++) {
-						var type = _arr2[_i2];element.removeEventListener(type, listener);
-					}
-				});
-				element.ftLstnrs.clear();
-				if (!(element instanceof Text)) F.cmpl(element, { reactive: options.reactive, reset: options.reset });
-				var rndrs = [],
-				    keys = [];
-				F.rndrs.set(element, rndrs);
-				if (element.attributes) for (var j = 0; j < element.attributes.length; j++) {
-					keys.push(element.attributes[j].name);
-				}
-				if (element instanceof Text) keys.push("wholeText");
-				var _iteratorNormalCompletion2 = true;
-				var _didIteratorError2 = false;
-				var _iteratorError2 = undefined;
-
-				try {
-					var _loop2 = function _loop2() {
-						var key = _step2.value;
-
-						var template = typeof element === "string" ? element : (element.getAttribute ? element.getAttribute(key) : element[key]) || element[key],
-						    type = typeof template === "undefined" ? "undefined" : _typeof(template);
-						if (type === "string" && template.indexOf("${") >= 0) {
-							var property = template.substring(2, template.lastIndexOf("}"));
-							property.split(" ").length === 1 || (property = undefined);
-							rndrs.push(function (model) {
-								if (element.model && element.model != model) element.model._views.delete(element);
-								element.model = model;
-								var replacement = F.interpolator(template, element, model, key, property);
-								if (replacement !== element) {
-									element.ftLstnrs.forEach(function (listener) {
-										var _arr3 = ["change", "keyup", "paste", "cut"];
-
-										for (var _i3 = 0; _i3 < _arr3.length; _i3++) {
-											var _type = _arr3[_i3];element.removeEventListener(_type, listener);
-										}
-									});
-									element.ftLstnrs.clear();
-									F.cmpl(replacement, { reactive: options.reactive, reset: options.reset });
-									element = replacement;
-									element.ftLstnrs = new Set();
-								}
-								var reactive = options.reactive || view.getAttribute("data-reactive");
-								if (property) {
-									var listener = function listener(event) {
-										var value = event.target.type === "checkbox" ? event.target.checked : event.target.type === "select-multiple" ? [] : event.target.value;
-										if (event.target.type === "select-multiple") {
-											for (var _i4 = 0; event.target[_i4]; _i4++) {
-												if (event.target[_i4].selected) value.push(event.target[_i4].value);
-											}
-										}
-										if (typeof reactive === "function") {
-											reactive(event, model, property, value);
-										} else {
-											!reactive || (model[property] = value);
-											event.target.model = model;
-											event.target.property = property;
-											F.rtr(event);
-										}
-									};
-									element.ftLstnrs.add(listener);
-									element.addEventListener("change", listener);
-									if ((element.tagName === "INPUT" || element.tagName === "TEXTAREA") && !["button", "radio", "checkbox"].includes(element.type)) {
-										var _arr4 = ["keyup", "paste", "cut"];
-
-										for (var _i5 = 0; _i5 < _arr4.length; _i5++) {
-											var _type2 = _arr4[_i5];element.addEventListener(_type2, listener);
-										}
-									}
-								}
-							});
-						}
-					};
-
-					for (var _iterator2 = keys[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-						_loop2();
-					}
-				} catch (err) {
-					_didIteratorError2 = true;
-					_iteratorError2 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion2 && _iterator2.return) {
-							_iterator2.return();
-						}
-					} finally {
-						if (_didIteratorError2) {
-							throw _iteratorError2;
-						}
+	function createInterpolator(template,imports) {
+		if(!template || !template.valueOf() || template.valueOf().indexOf("${")===-1) return;
+		const body = `(function (interp,tag,imprt) {
+			const $ = imprt, $include = imprt.include;
+			let values; 
+			with(this) { 
+				try { values = tag__template__; }
+				catch(e) { 
+					if(e instanceof ReferenceError) {
+						const key = e.message.trim().replace(/'/g,'').split(' ')[0],
+						value = this[key];
+						this[key] = (typeof(value)!=='undefined' ? value : '');
+						return interp.call(this,interp,tag,imprt);
 					}
 				}
+			} 
+			return values;
+		})`.replace(/__template__/g,"`"+template+"`"),
+			interpolator = evalInContext(body,{});
+		return function() {
+			return interpolator.call(this,interpolator,tag,imports);
+		}
+	}
+	const bindings = new Map(),
+		interpolators = new Map(),
+		targets = new Map(),
+		parents = new Map();
+
+	class F {
+		constructor(options={activate:true,reactive:true}) {
+			const fete = this;
+			this.imports = Object.assign({},options.imports||{});
+			this.imports.include = (view,scope) => {
+				view instanceof HTMLElement || (view=document.querySelector(view));
+				if(view instanceof HTMLTemplateElement) {
+					const replacement = document.createElement("include");
+					replacement.innerHTML = view.innerHTML.replace(/\s\s+/g, ' ');
+					return fete.compile(replacement).use(scope,options.activate,options.reactive);
+				}
+				return fete.compile(view.cloneNode(true)).use(scope,options.activate,options.reactive);
 			};
-
-			for (var i = 0; i < elements.length; i++) {
-				_loop(i);
-			}
-		},
-		interpolator: function interpolator(template, view, model, key, property) {
-			var rslt = F.cView = view;
-			var doit = new Function("doit", "let __val__=''; with(this) { try { __val__ = `" + template + "` }" + "catch(e) { if(e instanceof ReferenceError) {" + "this[e.message.trim().replace(/\'/g,'').split(' ')[0]] = '';" + "return doit.call(this,doit); }}} return __val__;");
-			var scope = model ? model : {};
-			for (var _key in F.imprts) {
-				Object.defineProperty(scope, _key, { enumerable: false, configurable: true, writable: false, value: F.imprts[_key] });
-			}var value = doit.call(scope, doit);
-			for (var _key2 in F.imprts) {
-				delete scope[_key2];
-			}if (view.type === 'radio' && property) {
-				if (key === 'checked' && view.checked) view[key] = scope[property] = view.value;
-			} else if (view.type === 'checkbox' && property) {
-				if (key === 'checked') view[key] = scope[property] = value === "on" || value === "true" || false;
-			} else if (view.type === 'select-one' && property) {
-				scope[property] = view.value;
-			} else if (view.type === 'select-multiple' && property) {
-				if (!scope[property]) scope[property] = [];
-			} else if (view.type === 'textarea' && property) {
-				view[key] = scope[property] = view.value;
-			} else if (key === "wholeText") {
-				var node = void 0;
-				if (value.trim().toLowerCase().indexOf("<!doctype html>") === 0) {
-					node = document.createElement("span");
-					node.innerHTML = value.trim().substring(15);
-				} else node = document.createTextNode(value);
-				view.parentNode.replaceChild(node, view);
-				node.model = model;
-				//model._views.delete(view);
-				//model._views.add(node);
-				rslt = node;
-			} else view[key] === value || (view[key] = value);
-			F.cView = null;
-			return rslt;
-		},
-		rndr: function rndr(view, model, options) {
-			var elements = view.childNodes;
-			for (var i = 0; i < elements.length; i++) {
-				F.rndr(elements[i], model, options);
-			}view.model = model;
-			var rndrs = F.rndrs.get(view);
-			if (rndrs) {
-				var _iteratorNormalCompletion3 = true;
-				var _didIteratorError3 = false;
-				var _iteratorError3 = undefined;
-
-				try {
-					for (var _iterator3 = rndrs[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-						var _rndrer2 = _step3.value;
-						_rndrer2(model);
-					}
-				} catch (err) {
-					_didIteratorError3 = true;
-					_iteratorError3 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion3 && _iterator3.return) {
-							_iterator3.return();
-						}
-					} finally {
-						if (_didIteratorError3) {
-							throw _iteratorError3;
-						}
+			this.imports.element = (tagName,data) => { 
+				const element = document.createElement(tagName),
+					contents = (Array.isArray(data) ? data : [data]);
+				for(let item of contents) {
+					if(item instanceof Node) {
+						element.appendChild(item);
+					} else {
+						element.appendChild(document.createTextNode(typeof(item)==="string" ? item : JSON.stringify(item)));
 					}
 				}
+				return element;
 			}
-		},
-		bnd: function bnd(model, view, controller) {
-			var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : { reactive: true };
-
-			(typeof view === "undefined" ? "undefined" : _typeof(view)) === "object" || (view = document.querySelector(view));
-			if (!view) {
-				throw new Error("F.bnd: 'view' undefined");
-			}
-
-			F.rndrs.delete(view);
-			view.controller = controller;
-			view.addEventListener("click", routeHandler, false);
-
-			model = F.actvt(model);
-			F.cmpl(view, options);
-			F.rndr(view, model, { reactive: options.reactive });
-			return model;
-		},
-		rtr: function rtr(event, next) {
-			var target = event.retarget || event.target,
-			    cntrlr = target.controller,
-			    cntrlrtype = typeof cntrlr === "undefined" ? "undefined" : _typeof(cntrlr),
-			    model = target.model ? JSON.parse(JSON.stringify(target.model)) : {};
-			deepFreeze(model);
-			if (cntrlrtype === "function") {
-				cntrlr(event, target.model, target.property, target.value);
-			} else if (cntrlr && cntrlrtype === "object") {
-				Object.keys(cntrlr).every(function (key) {
-					var state = void 0,
-					    test = cntrlr[key].test,
-					    rslt = false;;
-					if (target.hash) state = target.hash.substring(1);else if (typeof test === "function") rslt = test(event, model);
-					if (rslt || state && new RegExp(key).test(state)) {
-						target.id || (target.id = (Math.random() + "").substring(2));
-						event.type === "popstate" || rslt || history.pushState({ href: target.href, view: target.id }, cntrlr[key].title || state);
-						var view = cntrlr[key].selector ? document.querySelector(cntrlr[key].selector) : target;
-						if (typeof cntrlr[key].sideffect === "function") cntrlr[key].sideffect(event, view, model);
-						return cntrlr[key].cascade;
+			Node.prototype.use = function(data,activate,reactive) {
+				const me = this;
+				!activate || (data=fete.activate(data));
+				if(me instanceof HTMLElement) {
+					const children = [];
+					for(let i=0;i<me.childNodes.length;i++) children.push(me.childNodes[i]);
+					for(let child of children)	child.use(data,activate,reactive);
+					for(let i=0;i<me.attributes.length;i++) {
+						const attribute = me.attributes[i];
+						if(attribute.value.indexOf("${")===0 && (me.getAttribute("data-two-way")==="true" || reactive)) {
+							me.property = attribute.value.substring(2,attribute.value.lastIndexOf("}")).trim();
+							if(data && typeof(data)==="object") {
+								data[me.property]!==undefined || (data[me.property]=null);
+								bindings.set(me,{object:data,property:me.property});
+							}
+						}
+						attribute.use(data,activate,reactive);
 					}
-					return true;
-				});
+				} else {
+					const current = fete.cView,
+						target = targets.get(me),
+						views = (target ? target.__views__ : undefined);
+					fete.cView = me;
+					!activate || (data=fete.activate(data));
+					if(target && views) views.forEach((oldview) => { oldview!==me || views.delete(oldview); });
+					const interpolator = interpolators.get(me.id);
+					if(interpolator) {
+						const node = interpolator.call(data);
+						if(me instanceof Attr && node) me.value = node.childNodes[0].wholeText;
+						else if(node) {
+							parents.set(me.id,me.parentNode);
+							node.id = me.id;
+							me.parentNode.replaceChild(node,me);
+						}
+					}
+					fete.cView = current;
+				}
+				targets.set(me,data);
+				return me;
 			}
-			event.preventDefault();
-			event.stopPropagation();
+			Object.defineProperty(Node.prototype,"model",{get:function() { return targets.get(this); },set(value) { this.use(value,options.activate,options.reactive); return true; }});
+			
+			Object.defineProperty(fete,"routeHandler",{writable:true,configurable:true,value:(e) => {
+				if(e.target.tagName==="A" && e.target.host===window.location.host && e.target.hash) fete.router(e,(allow) => { if(!allow) { e.preventDefault(); }});
+			}});
+			Object.defineProperty(fete,"popHandler",{writable:true,configurable:true,value:(event) => {
+				if(!event.state) return;
+				const parser = document.createElement("a"),
+					view = document.getElementById(event.state.view);
+				event.retarget = view;
+				parser.href = event.state.href;
+				for(let key of ["href","origin","host","protocol","hostname","pathname","hash","search"]) event.target[key] = parser[key];
+				fete.router(event);
+			}});
+
+			function onchange(event) {
+				fete.cView = event.target;
+				const lazy = event.target.getAttribute("lazy");
+				if(["keyup","paste","cut"].includes(event.type) && (lazy==true || lazy==="")) return;
+				const value = (event.target.type==="select-multiple" ? [] : (event.target.type==="checkbox"  ? (event.target.value =  event.target.checked) :event.target.value)),
+					binding = bindings.get(event.target)
+				if(event.target.type==="select-multiple") {
+					for(let i=0;event.target[i];i++) if(event.target[i].selected) value.push(event.target[i].value);
+				}
+				!binding || binding.object[binding.property]===event.target.value || (binding.object[binding.property] = value);
+				fete.router(event);
+			}
+			document.addEventListener("change",onchange);
+			for(let type of ["keyup","paste","cut"]) document.addEventListener(type,onchange);
+
+		}
+		router(event,next) {
+			const target = event.currentTarget, //event.retarget || event.target,
+				controller = target.controller;
+			if(controller) {
+				const controllertype = typeof(controller),
+					model = (target.model ? JSON.parse(JSON.stringify(target.model)) : {});
+				deepFreeze(model);
+				if(controllertype==="function") controller(event,target.model,target.property,target.value);
+				else if(controllertype==="object") {
+					Object.keys(controller).every((key) => {
+						let state, test = controller[key].test, rslt = false;;
+						if(event.target.hash) state = event.target.hash.substring(1);
+						else if(typeof(test)==="function") rslt = test(event,model);
+						if(rslt || (state && new RegExp(key).test(state))) {
+							event.type==="popstate" || rslt || history.pushState({href:target.href,view:target.id},controller[key].title||state);
+							const view = (controller[key].selector ? document.querySelector(controller[key].selector) : target);
+							if(typeof(controller[key].sideffect)==="function") controller[key].sideffect(event,view,model);
+							return controller[key].cascade;
+						}
+						return true;
+					});
+				}
+				event.preventDefault();
+				event.stopPropagation();
+			}
 			!next || next();
 		}
-	};
-	var Fete = {
-		activate: F.actvt,
-		bind: F.bnd,
-		imports: F.imprts
-	};
-	if (typeof module !== "undefined") {
+		activate(model) {
+			if(!model || typeof(model)!=="object" || model.__views__) return model;
+			const me = this,
+				views = new Map(),
+				proxy = new Proxy(model,{
+					get: (target,property) => {
+						if(property==="__views__") return views;
+						if(typeof(target[property])!=="function" && property!==Symbol.unscopables && me.cView) { 
+							let reactive = views.get(property);
+							reactive || (reactive=new Set());
+							reactive.add(me.cView)
+							views.set(property,reactive);
+						}
+						return target[property];
+					},
+					set: (target,property,value) => {
+						//if(target[property]===value) return true;
+						target[property] = value;
+						if(typeof(target[property])!=="function" && property!==Symbol.unscopables) {
+							const focused = document.activeElement,
+								reactive = views.get(property);
+							!reactive || reactive.forEach((view) => {
+								const current = me.cView;
+								me.cView = view;
+								const interpolator = interpolators.get(view.id);
+								if(interpolator) {
+									const node = interpolator.call(proxy);
+									if(view instanceof Attr && node) {
+										view.value = node.childNodes[0].wholeText;
+										view.property = property;
+									} else if(node) {
+										const parent = (view.parentNode ? view.parentNode : parents.get(view.id));
+										node.id = view.id;
+										for(let i=0;i<parent.childNodes.length;i++) {
+											const child = parent.childNodes[i];
+											if(child.id===view.id) { parent.insertBefore(node,child); parent.removeChild(child); break; }
+										}
+									}
+								}
+								me.cView = current;
+							});
+							if(focused) {
+								const tofocus = document.getElementById(focused.id);
+								if(tofocus) {
+									tofocus.focus();
+									tofocus.selectionStart = tofocus.selectionEnd = tofocus.value.length
+								}
+							}
+						}
+						return true;
+					}
+				});
+			Object.keys(model).forEach((key) => {
+				const value = model[key];
+				if(value && typeof(value)==="object") model[key] = me.activate(value,proxy);
+			});
+			return proxy;
+		}
+		bind(model,view,controller,options={reactive:true}) {
+			model=this.activate(model);
+			view instanceof HTMLElement || (view=document.querySelector(view));
+			if(!view) { throw new Error("Fete.bind: 'view' undefined"); }
+			let template = options.template;
+			if(template) {
+				template instanceof HTMLElement || (template=document.querySelector(template));
+				if(!template) { throw new Error("Fete.bind: 'options.template' not found " + options.template); }
+				view.innerHTML = template.innerHTML;
+			}
+			this.compile(view);
+			if(model) view.use(model,true,options.reactive);
+			view.controller = controller;
+			view.addEventListener("click", this.routeHandler, false);
+			return model;
+		}
+		compile(view) {
+			let me = this,
+				fete = this,
+				current = fete.cView;
+			if(interpolators.get(view.id)) return view;
+			fete.cView = me;
+			if(view instanceof HTMLElement) {
+				const children = [];
+				for(let i=0;i<view.childNodes.length;i++) children.push(view.childNodes[i]);
+				for(let child of children)	me.compile(child);
+				for(let i=0;i<view.attributes.length;i++) me.compile(view.attributes[i]);
+			} else if(["string","number","boolean"].includes(typeof(view))) {
+				const replacement = {};
+				replacement.id = (Math.random()+"").substring(2);
+				const interpolator = createInterpolator(getContent(view),me.imports);
+				Object.defineProperty(replacement,"use",{value:function(data,activate) {
+					const me = this,
+						current = fete.cView;
+					fete.cView = me;
+					!activate || (data=fete.activate(data));
+					const target = targets.get(me);
+					if(target && target.__views__) target.__views__.forEach((oldview) => { oldview!==me || target.__views__.delete(oldview); })
+					targets.set(me,data);
+					fete.cView = current;
+					return me;
+				}});
+				Object.defineProperty(replacement,"model",{get:function() { return targets.get(this); },set(value) { this.use(value,options.activate); return true; }})
+				Object.defineProperty(replacement,"valueOf",{value:function() { return (interpolator ? (() => { let value = interpolator.call(targets.get(this)); return (value ? value.innerHTML : undefined); })() : targets.get(this))}});
+				view = replacement;
+			}
+			if(!(view instanceof HTMLElement)) { 
+				const interpolator = createInterpolator(getContent(view),me.imports); 
+				if(interpolator) { 
+					view.id || (view.id=(Math.random()+"").substring(2));
+					interpolators.set(view.id,interpolator); 
+				}
+			}
+			fete.cView = current;
+			return view;
+		}
+	}
+	Fete = F;
+	})();
+	if(typeof(module)!=="undefined") {
 		module.export = Fete;
-	} else if (typeof this !== "undefined") {
+	} else if(typeof(this)!=="undefined"){
 		this.Fete = Fete;
 	} else {
 		window.Fete = Fete;
 	}
-}).call(undefined);
+	}).call(this);
