@@ -10,42 +10,7 @@
 </head>
 <body>
 <script>
-const fete = new Fete();
-fete.imports.html = function html(literalSections, ...substs) {
-    // Use raw literal sections: we don’t want
-    // backslashes (\n etc.) to be interpreted
-    let raw = literalSections.raw;
-
-    let result = '';
-
-    substs.forEach((subst, i) => {
-        // Retrieve the literal section preceding
-        // the current substitution
-        let lit = raw[i];
-
-        // In the example, map() returns an array:
-        // If substitution is an array (and not a string),
-        // we turn it into a string
-        if (Array.isArray(subst)) {
-            subst = subst.join('');
-        }
-
-        // If the substitution is preceded by a dollar sign,
-        // we escape special characters in it
-        if (lit.endsWith('$')) {
-            subst = htmlEscape(subst);
-            lit = lit.slice(0, -1);
-        }
-        result += lit;
-        result += subst;
-    });
-    // Take care of last literal section
-    // (Never fails, because an empty template string
-    // produces one literal section, an empty string)
-    result += raw[raw.length-1]; // (A)
-
-    return result;
-}
+const fete = new Fete({reactive:true});
 </script>
 
 <h1><a class="github-fork-ribbon" href="https://github.com/anywhichway/fete" title="Fork me on GitHub">Fork me on GitHub</a>fete</h1>
@@ -60,6 +25,7 @@ Fete is a MIT licensed JavaScript <b>F</b>ront <b>E</b>nd reactive <b>TE</b>mpla
 <li>Zero dependencies</li>
 <li>Requires less boilerplate and set-up code than React, Angular, Vue, or Marko.</li>
 <li>Built-in bindings/normalizers for standard HTML UI controls: input, checkbox, radio, textarea, select, multi-select.</li>
+<li><b>NEW!</b> <i>forEach</i>, <i>if</i> and <i>bind</i> attribute directives for HTML elements.</li>
 <li>Uniform JavaScript string template syntax for HTML tag attributes and content, i.e. ${...expressions}.</li>
 <li>Optional two-way data binding.</li>
 <li>Extensible processor functions accessable through $.&lt;function name&gt;</li>
@@ -71,6 +37,14 @@ Fete is a MIT licensed JavaScript <b>F</b>ront <b>E</b>nd reactive <b>TE</b>mpla
 <li>Dependency tracking to ensure only views rendering data that has changed are updated.</li>
 <li>Server support ... not yet</li>
 </ul>
+
+<h2>Installation</h2>
+
+<p>npm install fete</p>
+
+<p>Then use the files from the browser directory. There is currently no server side support.</p>
+
+<p>Or, just reference https://public.cachegit.com/anywhichway/fete/master/browser/fete.es5.js for an auto-minified ES5 Version.</p>
 
 <h2>Examples</h2>
 <p>Use the arrows to expand and contract the examples with basic use documentation and source code.</p>
@@ -87,7 +61,6 @@ Fete is a MIT licensed JavaScript <b>F</b>ront <b>E</b>nd reactive <b>TE</b>mpla
 	<label>Count: ${count}</label> <button onclick="this.parentElement.model.click();">Click Me!</button>
 </template>
 </div>
-
 <div id="formDemoTemplates">
 <template id="formInstructions">
  <p>Change the form values and see the text change. Open debugger to see logging by controller.</p>
@@ -96,7 +69,7 @@ Fete is a MIT licensed JavaScript <b>F</b>ront <b>E</b>nd reactive <b>TE</b>mpla
  <p>
   Name:<input type="text" value="${name}" lazy></input>
   Status:<select value="${status}"><option>pending</option><option>approved</option><option>rejected</option></select>
-  Paid:<input type="checkbox" checked="${paid}"></input>
+  Paid:<input type="checkbox" value="${paid}"></input>
   Accepted Terms:<input name="terms" type="radio" value="Yes" checked="${terms}">Yes</input><input name="terms" type="radio" value="No" checked="${terms}">No</input>
  </p>
  <p>
@@ -105,17 +78,31 @@ Fete is a MIT licensed JavaScript <b>F</b>ront <b>E</b>nd reactive <b>TE</b>mpla
  </p>
  <p>Name: ${name} Status: ${status} Paid: ${paid} Accepted Terms: ${terms} Meals: ${meals}</p>
  <p id="noteToggle">Notes: (<a href="#toggle">show/hide</a>)<span id="noteDisplay" style="display:none">${notes}</span></p>
- <p>${JSON.stringify(this)}</p>
- <p>${$.include("#formInstructions",this)}</p>
+ <p>${JSON.stringify(model)}</p>
+ <p>${$.include("#formInstructions")}</p>
 </template>
 </div>
-
-<div id="tableDemoTemplates">
-<template id="table">
-${$.element("table",[$.element("tr",headers.map((item) => $.element("th",item))),$.element("tbody",rows.map((row) => $.element("tr",row.map((item) => $.element("td",item)))))])}
+<div id="forEachDemoTemplates">
+  <template id="forEachDemoTemplate">
+    <ul bind="${myData()}" forEach="${model}">
+      <li>${$.this[$.key]}</li>
+    </ul>
+  </template>
+</div>
+<div id="ifDemoTemplates">
+  <template id="ifDemoTemplate">
+    Show: <input type="checkbox" value="${show}">
+    <ul forEach="${data}" if="${show}">
+      <li>${$.this[$.key]}</li>
+    </ul>
+  </template>
+</div>
+<div id="dynamicDemoTemplates">
+<template id="dynamic">
+${$.element("table")([$.element("tr")(headers.map((item) => $.element("th")(item))),$.element("tbody")(rows.map((row) => $.element("tr")(row.map((item) => $.element("td")(item)))))])}
 </template>
-<template id="tableDemoTemplate">
- ${$.include("#table",{headers,rows})}
+<template id="dynamicDemoTemplate">
+ ${$.include("#dynamic",{headers,rows})}
 </template>
 </div>
 
@@ -128,9 +115,9 @@ ${$.element("table",[$.element("tr",headers.map((item) => $.element("th",item)))
 	<div id="helloDemoView"></div>
 	<ul>
 	<li>JavaScript string templates can be used within HTML. They can reference the properties of the currently bound model.</li>
-	<li><i>fete.bind(model,view,controller)</i> links a model to a view which is managed by an optional controller.</li>
+	<li><i>fete.mvc(model,view,controller)</i> links a model to a view which is managed by an optional controller.</li>
 	<li>By default the model is updated by the view and reactively causes updates to other areas of the view referenced by the updated property.</li>
-    <li><i>fete.bind</i> returns a Proxy for the model in a reactive state so that changes can be made directly to drive view updates.</li>
+    <li><i>fete.mvc</i> returns a Proxy for the model in a reactive state so that changes can be made directly to drive view updates.</li>
     </ul>
     <p>A clock that updates every second is a simple example of using this capability.</p>
 	<pre id="helloDemoSource"></pre>
@@ -155,8 +142,8 @@ ${$.element("table",[$.element("tr",headers.map((item) => $.element("th",item)))
 	<li>All changes to input are monitored unless the attribute <i>lazy</i> is added to the field definitions or the view is bound with the option <i>lazy:true</i>.</li>
 	<li>Standard JavaScript can be used within templates. The value <i>this</i> is associated with the model currently bound to the view.</li>
 	<li>The content of other views can be imported using <i>$.include</i> and HTMLElement ids. These will typically be template tag sections, but do not have to be.</li>
-	<li>A model can be activated prior to passing it to fete.bind.</li>
-	<li><i>fete.bind(model,view,controller)</i> binds a model to a view which is managed by a controller.</li>
+	<li>A model can be activated prior to passing it to fete.mvc.</li>
+	<li><i>fete.mvc(model,view,controller)</i> binds a model to a view which is managed by a controller.</li>
     <li>A controller is an object, the keys of which operate as regular expressions in a switch to match hyperlink #hash values. 
     Or, a function with the call signature: <i>(event,model,property,value)</i>. UI elements will be decoded before calling the function. The model will already have been updated if reactivity is turned on.</li>
     <li>Controller switch sections can also be activated by a test function which looks at the body of a read-only copy of the currently bound model.
@@ -167,24 +154,45 @@ ${$.element("table",[$.element("tr",headers.map((item) => $.element("th",item)))
     </ul>
 	<pre id="formDemoSource"></pre>
 </div>
+
+<h3>forEach and bind Attribute Directive<a href="#forEach" style="text-decoration:none;" title="expand/contract">&#8681;</a></h3>
+<div id="forEachDemo" style="display:none">
+	<div id="forEachDemoView"></div>
+	<ul>
+	<li>The <i>bind</i> directive binds the result of an interpolation to the element.</li>
+	<li>By using the <i>forEach</i> attribute, repeating HTML elements can be inserted</li>
+	<li><i>forEach</i> can be used on object maps or arrays. <i>$.this</i> will be bound to the object or array. <i>$.key</i> will be bound to the key or index.</li>
+	<li>The variable <i>model</i> used iside of interpolations is special and will refer to the entire binding. Think of it as <i>this</i> for an interpolation.</li>
+	</ul>
+	<pre id="forEachDemoSource"></pre>
+</div>
+
+<h3>if Attribute Directives<a href="#if" style="text-decoration:none;" title="expand/contract">&#8681;</a></h3>
+<div id="ifDemo" style="display:none">
+	<div id="ifDemoView"></div>
+	<ul>
+	<li>By using the <i>if</i> attribute, HTML elements can be shown or hidden. Sub-elements are not computed/rendered if hidden.</li>
+	</ul>
+	<pre id="ifDemoSource"></pre>
+</div>
 	
-<h3>Table <a href="#table" style="text-decoration:none;" title="expand/contract">&#8681;</a></h3>
-<div id="tableDemo" style="display:none">
-	<div id="tableDemoView"></div>
+<h3>Dynamic Elements<a href="#dynamic" style="text-decoration:none;" title="expand/contract">&#8681;</a></h3>
+<div id="dynamicDemo" style="display:none">
+	<div id="dynamicDemoView"></div>
 	<ul>
 	<li>By using the <i>$.include(selector,scope)</i> helper, templates can operate like partials in Mustache based template engines in order to do standardized formatting.</li>
 	<li>The <i>$.element</i> helper creates HTML elements with the provided tagName and can be used recursivley. This is both more powerful than
 	concatenating HTML fragments and also avoids issues with escaping HTML inside of JavaScript template literals.</li>
 	</ul>
-	<pre id="tableDemoSource"></pre>
-</div>	
+	<pre id="dynamicDemoSource"></pre>
+</div>
 
 <h3>This Demo <a href="#fete" style="text-decoration:none;" title="expand/contract">&#8681;</a></h3>
 <div id="feteDemo"  style="display:none">
 	<ul>
-	<li>Providing a model to <i>fete.bind</i> is optional. The top level of this demo is just a view with a controller.</li>
+	<li>Providing a model to <i>fete.mvc</i> is optional. The top level of this demo is just a view with a controller.</li>
 	<li>Multiple model/view/controller bindings can exist on the same page.</li>
-	<li><i>fete.bind</i> can take an fourth argument to specify options:
+	<li><i>fete.mvc</i> can take an fourth argument to specify options:
 		<ul>
 		<li><i>reactive</i>:
 			<ul>
@@ -202,7 +210,7 @@ ${$.element("table",[$.element("tr",headers.map((item) => $.element("th",item)))
 
 <div id="feteDemoScript">
 <script>
-fete.bind(null,"#demos",{
+fete.mvc(null,"#demos",{
   "hello": {
     selector: "#helloDemo",
     sideffect: (event,view) => { renderSource("hello",true); toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
@@ -215,9 +223,17 @@ fete.bind(null,"#demos",{
     selector: "#formDemo",
     sideffect: (event,view) => { renderSource("form",true);  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
   },
-  "table": {
-    selector: "#tableDemo",
-    sideffect: (event,view) => { renderSource("table",true);  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
+  "forEach": {
+    selector: "#forEachDemo",
+    sideffect: (event,view) => { renderSource("forEach",true);  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
+  },
+  "if": {
+	    selector: "#ifDemo",
+	    sideffect: (event,view) => { renderSource("if",true);  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
+  },
+  "dynamic": {
+    selector: "#dynamicDemo",
+    sideffect: (event,view) => { renderSource("dynamic",true);  toggleExpander(event.target.hash); view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"); }
   },
   "fete": {
     selector: "#feteDemo",
@@ -226,7 +242,7 @@ fete.bind(null,"#demos",{
 });
 </script>
 <script id="helloDemoScript">
-  const model = fete.bind({time: new Date().toLocaleTimeString()},"#helloDemoView",null,{template:"#helloDemoTemplate"});
+  const model = fete.mvc({time: new Date().toLocaleTimeString()},"#helloDemoView",null,{template:"#helloDemoTemplate"});
   setInterval(() => { model.time = new Date().toLocaleTimeString()},1000);
 </script>
 <script id="clickDemoScript">
@@ -234,11 +250,11 @@ fete.bind(null,"#demos",{
     constructor() { this.count = 0; }
     click() { this.count++; }
   }
-  fete.bind(new Clicker(),"#clickDemoView",null,{template:"#clickDemoTemplate"});
+  fete.mvc(new Clicker(),"#clickDemoView",null,{template:"#clickDemoTemplate"});
 </script>
 <script id="formDemoScript">
  const mymodel = fete.activate({name:"Bill"});
- fete.bind(mymodel,"#formDemoView",{
+ fete.mvc(mymodel,"#formDemoView",{
    "toggle": {
      selector: "#noteDisplay",
      sideffect: (event,view) =>  view.style.display = (["block",""].includes(view.style.display) ? "none" : "block"),
@@ -255,8 +271,17 @@ fete.bind(null,"#demos",{
    }
  },{template:"#formDemoTemplate",reactive:true});
 </script>
-<script id="tableDemoScript">
-  fete.bind({headers:["column one","column two"],rows:[[1,2],[2,1]]},"#tableDemoView",null,{template:"#tableDemoTemplate"});
+<script id="forEachDemoScript">
+  function myData() {
+    return [1,2,3];
+  }
+  fete.mvc(null,"#forEachDemoView",null,{template:"#forEachDemoTemplate"});
+</script>
+<script id="ifDemoScript">
+  fete.mvc({data:[1,2,3],show:true},"#ifDemoView",null,{template:"#ifDemoTemplate"});
+</script>
+<script id="dynamicDemoScript">
+  fete.mvc({headers:["column one","column two"],rows:[[1,2],[2,1]]},"#dynamicDemoView",null,{template:"#dynamicDemoTemplate"});
 </script>
 <script id="auxilliarytScript">
 //converts visual HTML representations of entities to their text representation

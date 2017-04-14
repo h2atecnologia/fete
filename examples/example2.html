@@ -1,0 +1,79 @@
+
+<html>
+<head>
+<script src="../index.js"></script>
+</head>
+<body>
+<div id="app">
+	<a href="#test">Test</a>
+</div>
+<template id="subfooter">
+<p>Subfooter</p>
+</template>
+<template id="footer">
+	<p>${test}</p>
+	<p>${$.include("#subfooter")}</p>
+</template>
+<div id="book">
+ <article data-magic="${magic}">
+    <p><input value="${title}" ></input></p>
+     <p>${$.include("#table")}</p>
+    List of ${paragraphs.length} paragraphs:
+    ${$.element("ul")(paragraphs.map(p => $.element("li")(p.title)))}
+    <p>${$.include("#footer",{test:"test"})}</p>
+  </article>
+</div>
+
+<template id="table">
+	${$.element("table")(table.map(row => $.element("tr")(row.map(col => $.element("td")(col)))))}
+</template>
+
+<script type="text/plain" id="tableTemplate">
+<input type="text"></input>
+<table>
+
+</table>
+</script>
+
+<script>
+
+const model1 = {
+	    title: 'True story one',
+	    table: [
+	    	[1,2,3],
+	    	[3,2,1]
+	    ],
+	    magic: true,
+	    paragraphs: [
+	      {title: 'touching'},
+	      {title: 'incredible'},
+	      {title: 'doge'}
+	    ]
+	},
+	  model2 = {
+	    title: 'True story two',
+	    magic: true,
+	    paragraphs: [
+	      {title: 'touching'},
+	      {title: 'incredible'},
+	      {title: 'doge'}
+	    ]
+	  };
+	// view = document.getElementById("book");
+//let model = Fete.mvc(model1,view,(event,model,property,value) => console.log(event,model,property,value));
+
+const fete = new Fete();
+let model = fete.mvc(model1,document.getElementById("book"),(event)=>console.log(event));
+
+fete.mvc(null,document.getElementById("app"),{
+	"test": {
+		test: (event,view,model,state) => state.indexOf("test"),
+		sideffect: (event) => console.log(event),
+		cascade: true
+	}
+})
+
+//let table = Fete.mvc({rows:[[1,2,3]]},document.getElementById("table"),null,{template:document.getElementById("tableTemplate")});
+</script>
+</body>
+</html>

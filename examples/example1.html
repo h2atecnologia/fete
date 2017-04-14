@@ -1,0 +1,44 @@
+<hmtl>
+<head>
+<script src="../index.js"></script>
+</head>
+<body>
+
+<template id="footer">
+${footer}
+</template>
+
+<div id="app" title="${title}">
+<p>Test Text: ${text}</p>
+<p>Test Input: <input value="${input}" lazy></input></p>
+<p>Test Select: <select value="${selection}"><option>1</option><option>2</option><option>3</option></select>
+<p>Test Select Multiple: <select value="${multiselection}" multiple><option>A</option><option>B</option><option>C</option></select>
+<p>Test Checkbox: <input type="checkbox" value="${checkbox}" data-two-way></input></p>
+<p>Test Radio: One: <input type="radio" value="1" name="radio" checked="${radio}"> Two:<input type="radio" value="2" name="radio" checked="${radio}"></input></p>
+<p>${$.include("#footer")}</p>
+<p>${$.element("table",{border:"${border}"})(table.map((row) => $.element("tr")(row.map((col) => $.element("td")(col)))))}</p>
+</div>
+
+<div id="ultest">
+<ul forEach="${[1,2,3]}">
+<li>${$.this[$.key]}</li>
+</ul>
+</div>
+
+<div id="objecttest">
+<ul forEach="${{name:'Joe',age:24}}" if="${true}">
+<li>${$.this[$.key]}</li>
+</ul>
+</div>
+
+<script>
+const fete = new Fete(),
+	model = fete.mvc({border:2,title:"Test Title",text:"Test Text",input:"Test Input",selection:2,multiselection:["A","B","C"],checkbox:true,radio:2,footer:"Test Footer",table:[[1,2,3],[4,5,6]]},
+			"#app",null),
+	tmodel = fete.mvc([[1,2,3],[4,5,6]],"#ultest",null),
+	omodel = fete.mvc([[1,2,3],[4,5,6]],"#objecttest",null); // ad a table test!
+
+
+</script>
+</body>
+</hmtl>

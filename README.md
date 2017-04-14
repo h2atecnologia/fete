@@ -33,6 +33,8 @@ See https://anywhichway.github.io/fete/
 
 # release history (reverse chronological order)
 
+2017-04-14 v1.2.1 Added forEach, if, and bind attribute directives. Enhanced examples in interactive documentation.
+
 2017-03-29 v1.2.0 Optimized portions of core and made more extensible. Added $.element helper. Added Click Me! Example. Improved documentation. Depreacted $import in favor of $.include. $import will continue to work through v1.4.0.
 
 2017-03-18 v1.1.1 Enhanced documentation, added "lazy" option to inputs, enhanced template parsing so function can return text or an HTMLElement. If an HTMLElement is returned its innerHTML, innerText, or wholetext is added to the containing template resolution.
