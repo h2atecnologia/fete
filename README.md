@@ -2,11 +2,12 @@
 Front End TEmplates - Light weight reactive JavaScript templates and routing
 
 <ul>
-<li>Small: 12.5K raw, 7.5K minified, 3K gzipped; ES5 - Transpiled, minified, gzipped 3.5K</li>
+<li>Small: 15.5K raw, 9K minified, 3K gzipped; ES5 - Transpiled, minified, gzipped 5K.</li>
 <li>Base version works in recent releases of Chrome, Firefox, Edge. Transpiling not required.</li>
 <li>Zero dependencies</li>
 <li>Requires less boilerplate and set-up code than React, Angular, Vue, or Marko.</li>
 <li>Built-in bindings/normalizers for standard HTML UI controls: input, checkbox, radio, textarea, select, multi-select.</li>
+<li><b>NEW!</b> <i>forEach</i>, <i>if</i> and <i>bind</i> attribute directives for HTML elements.</li>
 <li>Uniform JavaScript string template syntax for HTML tag attributes and content, i.e. ${...expressions}.</li>
 <li>Optional two-way data binding.</li>
 <li>Extensible processor functions accessable through $.&lt;function name&gt;</li>
