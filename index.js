@@ -457,9 +457,9 @@ class Fete {
 			let viewsource = restoreEntities(view.innerHTML),
 				templatesource = restoreEntities(innerHTML);
 			if(viewsource !== templatesource) {
-				console.log("Template as string ",templatesource);
-				console.log("Template as HTML ",viewsource);
-				throw new Error("Fete.mvc: Unable to compile. Template may contain invalid HTML or HTML fragment outside a div.");
+				console.log("Warning: Template HTML and view HTML mismatch. May contain invalid HTML or HTML fragment outside a div. Rendering may be incorrect.")
+				//console.log("Template as string ",templatesource);
+				//console.log("Template as HTML ",viewsource);
 			}
 		}
 	  	model = view.compile(options.reactive).use(model,controller);
