@@ -2,12 +2,13 @@
 Front End TEmplates - Light weight reactive JavaScript templates and routing
 
 <ul>
-<li>Small: 15.5K raw, 9K minified, 3K gzipped; ES5 - Transpiled, minified, gzipped 5K.</li>
+<li>Small: 16.5K raw, 10K minified, 3.5K gzipped; ES5 - Transpiled, minified, gzipped 5.5K.</li>
 <li>Base version works in recent releases of Chrome, Firefox, Edge. Transpiling not required.</li>
 <li>Zero dependencies</li>
 <li>Requires less boilerplate and set-up code than React, Angular, Vue, or Marko.</li>
 <li>Built-in bindings/normalizers for standard HTML UI controls: input, checkbox, radio, textarea, select, multi-select.</li>
-<li><b>NEW!</b> <i>forEach</i>, <i>if</i> and <i>bind</i> attribute directives for HTML elements.</li>
+<li><b>NEW! v1.1.1</b> <i>forEach</i>, <i>if</i> and <i>bind</i> attribute directives for HTML elements.</li>
+<li><b>NEW! v1.2.2</b> First class components.</li>
 <li>Uniform JavaScript string template syntax for HTML tag attributes or directives and content, i.e. ${...expressions}.</li>
 <li>Optional two-way data binding.</li>
 <li>Extensible processor functions accessable through $.&lt;function name&gt;</li>
@@ -34,6 +35,8 @@ Or, just reference https://public.cachegit.com/anywhichway/fete/master/browser/f
 See https://anywhichway.github.io/fete/
 
 # release history (reverse chronological order)
+
+2017-04-16 v1.2.2 Introduced first class components. Optimized rendering.
 
 2017-04-14 v1.2.1 Added forEach, if, and bind attribute directives. Enhanced examples in interactive documentation.
 

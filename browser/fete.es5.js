@@ -442,14 +442,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 			HTMLElement.prototype.compile = function (twoway) {
 				for (var i = 0; i < this.attributes.length; i++) {
-					var attribute = this.attributes[i];
-					attribute.compile();
-				}
-				for (var _i3 = 0; _i3 < this.childNodes.length; _i3++) {
+					this.attributes[i].compile();
+				}for (var _i3 = 0; _i3 < this.childNodes.length; _i3++) {
 					var child = this.childNodes[_i3];
-					if (child instanceof HTMLInputElement && twoway) {
-						child.setAttribute("data-two-way", true);
-					}
+					if (child instanceof HTMLInputElement && twoway) child.setAttribute("data-two-way", true);
 					child.compile(twoway);
 				}
 				return this;
@@ -457,23 +453,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			HTMLElement.prototype.render = function () {
 				viewStack.push(this);
 				if (this.getAttribute("bind")) {
+					// do any special binds first so the data can be used
 					for (var i = 0; i < this.attributes.length; i++) {
 						var attribute = this.attributes[i];
 						if (attribute.name === "bind" && attribute.interpolator) {
-							var model = this.model || {},
-							    value = attribute.interpolator(model);
+							var value = attribute.interpolator(this.model || {});
 							if (value && value[1]) this.use(value[1]);
 							break;
 						}
 					}
 				}
-				for (var _i4 = 0; _i4 < this.attributes.length; _i4++) {
-					var _attribute = this.attributes[_i4];
-					_attribute.render();
+				if (this.getAttribute("if")) {
+					// for efficiency, process if at this level to prevent child rendering
+					for (var _i4 = 0; _i4 < this.attributes.length; _i4++) {
+						var _attribute = this.attributes[_i4];
+						if (_attribute.name === "if" && _attribute.interpolator) {
+							var _value2 = _attribute.interpolator(this.model || {});
+							if (!_value2 || !_value2[1]) {
+								this.style.display = "none";
+								while (this.childNodes.length) {
+									this.removeChild(this.childNodes[0]);
+								}return; // abort rendering
+							}
+							break;
+						}
+					}
 				}
-				var children = []; // childNodes may change along the way, so solidify
-				for (var _i5 = 0; _i5 < this.childNodes.length; _i5++) {
-					children.push(this.childNodes[_i5]);
+				for (var _i5 = 0; _i5 < this.attributes.length; _i5++) {
+					this.attributes[_i5].render();
+				}var children = []; // childNodes may change along the way, so solidify
+				for (var _i6 = 0; _i6 < this.childNodes.length; _i6++) {
+					children.push(this.childNodes[_i6]);
 				}var _iteratorNormalCompletion3 = true;
 				var _didIteratorError3 = false;
 				var _iteratorError3 = undefined;
@@ -509,6 +519,19 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				return _activate(object);
 			}
 		}, {
+			key: "createComponent",
+			value: function createComponent(name, html, controller) {
+				var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : { reactive: true };
+
+				var fete = this,
+				    componentTemplate = "class __name__ extends extend {\n\t\t\t\tconstructor(model) {\n\t\t\t\t\tconst args = [].slice.call(arguments,1);\n\t\t\t\t\tsuper(...arguments);\n\t\t\t\t\tthis.model = model;\n\t\t\t\t\tthis.html = html;\n\t\t\t\t\tthis.controller = controller;\n\t\t\t\t}\n\t\t\t\trender(viewport,model,controller) {\n\t\t\t\t\toptions = Object.assign({},options);\n\t\t\t\t\toptions.html = this.html;\n\t\t\t\t\treturn fete.mvc(model||this.model||this,viewport,controller||this.controller,options);\n\t\t\t\t}\n\t\t\t}";
+				var _extend = options.extend;
+				typeof _extend === "function" || (_extend = function extend() {
+					Object.assign(this, _extend || {});
+				});
+				return new Function("fete", "extend", "html", "controller", "options", "return " + componentTemplate.replace("__name__", name))(fete, _extend, html, controller, options);
+			}
+		}, {
 			key: "mvc",
 			value: function mvc(model, view, controller) {
 				var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : { reactive: true };
@@ -517,22 +540,24 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (!view) {
 					throw new Error("Fete.mvc: 'view' undefined");
 				}
-				var template = options.template;
+				var innerHTML = options.html,
+				    template = options.template;
 				if (template) {
 					template instanceof HTMLElement || (template = document.querySelector(template));
 					if (!template) {
 						throw new Error("Fete.mvc: 'options.template' not found " + options.template);
 					}
-					view.innerHTML = template.innerHTML;
+					innerHTML = template.innerHTML;
+				}
+				if (innerHTML) {
+					view.innerHTML = innerHTML;
 					var viewsource = restoreEntities(view.innerHTML),
-					    templatesource = restoreEntities(template.innerHTML);
+					    templatesource = restoreEntities(innerHTML);
 					if (viewsource !== templatesource) {
 						console.log("Template as string ", templatesource);
 						console.log("Template as HTML ", viewsource);
-						throw new Error("Fete.mvc: Unable to compile. Template may contain invalid HTML.");
+						throw new Error("Fete.mvc: Unable to compile. Template may contain invalid HTML or HTML fragment outside a div.");
 					}
-					// above happens when template has illegal HTML which may still process correctly in Fete,
-					// e.g. <table>${...some functions}</table>; hence, can't be compiled normally.
 				}
 				model = view.compile(options.reactive).use(model, controller);
 				view.render();

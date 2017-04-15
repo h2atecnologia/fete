@@ -35,7 +35,7 @@ const genId = () => {
 		}
 		return parse();
 	}`,
-	activate = (object) => {
+	activate = object => {
 		if(typeof(object)!=="object" || !object || object.__views__) return object;
 		if(Array.isArray(object)) object.forEach((item,i) => object[i] = activate(item));
 		else Object.keys(object).forEach((key) => {
@@ -104,7 +104,7 @@ const genId = () => {
 		}
 		!next || next();
 	},
-	onchange = (event) => {
+	onchange = event => {
 		const lazy = event.target.getAttribute("lazy"),
 			focused = document.activeElement
 		if(["keyup","paste","cut"].includes(event.type) && (lazy==true || lazy==="") && event.target===focused && ![9,13,14].includes(event.keyCode)) return;
@@ -190,7 +190,7 @@ function element(tagName,attributes={},model) {
 	return function(modelOrView) {
 		if(modelOrView instanceof Node) view.appendChild(modelOrview);
 		else if(Array.isArray(modelOrView)) {
-			modelOrView.forEach((child) => {
+			modelOrView.forEach(child => {
 				child instanceof Node || (child = document.createTextNode(child));
 				view.appendChild(child);
 			});
@@ -241,7 +241,7 @@ class Fete {
 						if(property.indexOf(" ")===-1) owner.property = property; // should use a RegExp
 					}
 				}
-				this.interpolator = (model) => {
+				this.interpolator = model => {
 					!owner.property || !!model[owner.property] || !Object.getOwnPropertyDescriptor(window,owner.property) || Object.defineProperty(model,owner.property,{configurable:true,writable:true,enumerable:true,value:undefined});
 					return interpolator(templateCompositeObjects,imports,model);
 				}
@@ -301,7 +301,7 @@ class Fete {
 							while(span.childNodes.length>0) owner.appendChild(span.childNodes[0]);
 						});
 					} else {
-						Object.keys(value).forEach((key) => {
+						Object.keys(value).forEach(key => {
 							imported.key = key;
 							const html = this.innerInterpolator(templateCompositeText,imported,value[key]),
 								span = document.createElement("span");
@@ -345,7 +345,7 @@ class Fete {
 		Text.prototype.compile = function() {
 			if(this.textContent.indexOf("${")>=0) {
 				const interpolator = new Function("return " + parser.replace("__source__","`"+this.textContent+"`"))();
-				this.interpolator = (model) => interpolator(templateComposite,imports,model);
+				this.interpolator = model => interpolator(templateComposite,imports,model);
 			}
 			return this;
 		}
@@ -377,36 +377,41 @@ class Fete {
 		}
 		
 		HTMLElement.prototype.compile = function(twoway) {
-			for(let i=0;i<this.attributes.length;i++) {
-				const attribute = this.attributes[i];
-				attribute.compile();
-			}
+			for(let i=0;i<this.attributes.length;i++) this.attributes[i].compile();
 			for(let i=0;i<this.childNodes.length;i++) {
 				const child = this.childNodes[i];
-				if(child instanceof HTMLInputElement && twoway) {
-					child.setAttribute("data-two-way",true);
-				}
+				if(child instanceof HTMLInputElement && twoway) child.setAttribute("data-two-way",true);
 				child.compile(twoway);
 			}
 			return this;
 		}
 		HTMLElement.prototype.render = function() {
 			viewStack.push(this);
-			if(this.getAttribute("bind")) {
+			if(this.getAttribute("bind")) { // do any special binds first so the data can be used
 				for(let i=0;i<this.attributes.length;i++) {
 					const attribute = this.attributes[i];
 					if(attribute.name==="bind" && attribute.interpolator) {
-						const model = this.model || {},
-							value = attribute.interpolator(model);
+						const value = attribute.interpolator(this.model || {});
 						if(value && value[1]) this.use(value[1]);
 						break;
 					}
 				}
 			}
-			for(let i=0;i<this.attributes.length;i++) {
-				const attribute = this.attributes[i];
-				attribute.render();
+			if(this.getAttribute("if")) { // for efficiency, process if at this level to prevent child rendering
+				for(let i=0;i<this.attributes.length;i++) {
+					const attribute = this.attributes[i];
+					if(attribute.name==="if" && attribute.interpolator) {
+						const value = attribute.interpolator(this.model || {});
+						if(!value || !value[1]) {
+							this.style.display = "none";
+							while(this.childNodes.length) this.removeChild(this.childNodes[0]);
+							return; // abort rendering
+						}
+						break;
+					}
+				}
 			}
+			for(let i=0;i<this.attributes.length;i++) this.attributes[i].render();
 			const children = []; // childNodes may change along the way, so solidify
 			for(let i=0;i<this.childNodes.length;i++) children.push(this.childNodes[i]);
 			for(let child of children) child.render();
@@ -417,23 +422,45 @@ class Fete {
 	activate(object) {
 		return activate(object);
 	}
+	createComponent(name,html,controller,options={reactive:true}) {
+		const fete = this,
+			componentTemplate = `class __name__ extends extend {
+				constructor(model) {
+					const args = [].slice.call(arguments,1);
+					super(...arguments);
+					this.model = model;
+					this.html = html;
+					this.controller = controller;
+				}
+				render(viewport,model,controller) {
+					options = Object.assign({},options);
+					options.html = this.html;
+					return fete.mvc(model||this.model||this,viewport,controller||this.controller,options);
+				}
+			}`;
+		let extend = options.extend;
+		typeof(extend)==="function" || (extend = function() { Object.assign(this,extend||{}); });
+		return new Function("fete","extend","html","controller","options","return " + componentTemplate.replace("__name__",name))(fete,extend,html,controller,options);
+	}
 	mvc(model,view,controller,options={reactive:true}) {
 		view instanceof HTMLElement || (view=document.querySelector(view));
 		if(!view) { throw new Error("Fete.mvc: 'view' undefined"); }
-		let template = options.template;
+		let innerHTML = options.html,
+			template = options.template;
 		if(template) {
 			template instanceof HTMLElement || (template=document.querySelector(template));
 			if(!template) { throw new Error("Fete.mvc: 'options.template' not found " + options.template); }
-			view.innerHTML = template.innerHTML;
+			innerHTML = template.innerHTML;
+		}
+		if(innerHTML) {
+			view.innerHTML = innerHTML;
 			let viewsource = restoreEntities(view.innerHTML),
-				templatesource = restoreEntities(template.innerHTML);
+				templatesource = restoreEntities(innerHTML);
 			if(viewsource !== templatesource) {
 				console.log("Template as string ",templatesource);
 				console.log("Template as HTML ",viewsource);
-				throw new Error("Fete.mvc: Unable to compile. Template may contain invalid HTML.");
+				throw new Error("Fete.mvc: Unable to compile. Template may contain invalid HTML or HTML fragment outside a div.");
 			}
-			// above happens when template has illegal HTML which may still process correctly in Fete,
-			// e.g. <table>${...some functions}</table>; hence, can't be compiled normally.
 		}
 	  	model = view.compile(options.reactive).use(model,controller);
 	  	view.render();

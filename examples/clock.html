@@ -1,0 +1,46 @@
+<hmtl>
+<head>
+<script src="../index.es5.js"></script>
+</head>
+
+<div id="display"></div>
+
+<script>
+class Stopwatch {
+	constructor() {
+		this.running = 0;
+		this.minutes = 0;
+		this.seconds = 0;
+		this.milliseconds = 0;
+	}
+	reset() {
+		this.running = 0;
+		this.minutes = 0;
+		this.seconds = 0;
+		this.milliseconds = 0;
+		delete this.started;
+	}
+	start() {
+		const me = this;
+		me.interval = setInterval(() => { me.tick(); },100);
+	}
+	stop() {
+		clearInterval(this.interval);
+	}
+	tick() {
+		this.started || (this.started = Date.now());
+		this.running = Date.now() - this.started;
+		this.minutes = Math.trunc(this.running / (60 *1000));
+		this.seconds = Math.trunc((this.running - (this.minutes * 60 * 1000)) / 1000);
+		this.milliseconds = Math.trunc((this.running - (this.minutes * 60 * 1000)) -  (this.seconds * 1000)); 
+	}
+}
+ 
+const fete = new Fete(),
+	html = '${minutes}:${seconds}:${milliseconds}<br><input type="button" value="Start"> <input type="button" value="Stop"> <input type="button" value="Reset">',
+	controller = (e,m) => { let commands = {Start:"start",Stop:"stop",Reset:"reset"}; !commands[e.target.value] || m[commands[e.target.value]]()},
+	StopwatchDisplay = fete.createComponent("StopwatchDisplay",html,controller),
+	stopwatchDisplay = new StopwatchDisplay(new Stopwatch()).render("#display");
+
+</script>
+<body>
