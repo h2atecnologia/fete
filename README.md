@@ -2,7 +2,7 @@
 Front End TEmplates - Light weight reactive JavaScript templates and routing
 
 <ul>
-<li>Small: 16.5K raw, 10K minified, 3.5K gzipped; ES5 - Transpiled, minified, gzipped 5.5K.</li>
+<li>Small: 14.6K raw, 8.5K minified, 3K gzipped; ES5 - Transpiled, minified, gzipped 5K.</li>
 <li>Base version works in recent releases of Chrome, Firefox, Edge. Transpiling not required.</li>
 <li>Zero dependencies</li>
 <li>Requires less boilerplate and set-up code than React, Angular, Vue, or Marko.</li>
@@ -35,6 +35,8 @@ Or, just reference https://public.cachegit.com/anywhichway/fete/master/browser/f
 See https://anywhichway.github.io/fete/
 
 # release history (reverse chronological order)
+
+2017-04-20 v1.2.3 Reworked internals to drive size back down to 3K. Implemented benchmarks. Acceptable, but need to do some performance improvements. Fixed issue with "foreach" discovered during code walkthrough.
 
 2017-04-16 v1.2.2 Introduced first class components. Optimized rendering.
 

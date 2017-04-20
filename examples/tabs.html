@@ -1,0 +1,43 @@
+<html>
+<head>
+<script src="../index.js"></script>
+<style type="text/css">
+
+    </style>
+</head>
+<body>
+
+<div id="display"></div>
+
+add an init function to mvc than can analyze code normalize saome stuff, e.g. colspan
+
+<table bind="{personal:{firstName:'Joe',lastName:'Jones'},address:{city:'Seattle'}}">
+<thead>
+<tr></span></th><th><input type="checkbox" title="Explode"><a href="#personal">Personal Info</a></th><th><input type="checkbox" title="Explode"><a href="#address">Address</a></th></tr>
+</thead>
+<tbody >
+<tr bind="${personal}">
+<td colspan="2" style="border: 2px solid black;">
+First Name: <input value=${firstName}><br>
+Last Name: <input value=${lastName}>
+</td>
+</tr>
+<tr bind="${address}" style="display:none">
+<td colspan="2" style="border: 2px solid black;">
+City: <input value="${city}">
+</td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+
+
+
+<script>
+
+
+</script>
+</body>
+</html>

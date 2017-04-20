@@ -1,13 +1,9 @@
 (function() {
-'use strict';
+'use strict'
 
-const genId = () => {
-		return (Math.random()+"").substring(2);
-	},
-	restoreEntities = (html) => {
-		return html.replace(/&gt;/g,">").replace(/&lt;/g,"<");
-	},
-	toBoolean = (value) => {
+const genId = () => (Math.random()+"").substring(2),
+	restoreEntities = html => html.replace(/&gt;/g,">").replace(/&lt;/g,"<"),
+	toBoolean = value => {
 		const lookup = {
 			true: true,
 			false: false,
@@ -21,26 +17,24 @@ const genId = () => {
 		return lookup[value];
 	},
 	parser = `function(tag,$={},model={}) {
-		function parse() {
+		function parse($,model) {
 			with(model) {
-				try { return tag__source__; }
+				try { return tag_src_; }
 				catch(e) { 
 					if(e instanceof ReferenceError) {
 						var key = e.message.trim().replace(/'/g,'').split(' ')[0];
 						model[key] = (typeof(value)!=='undefined' ? value : '');
-						return parse();
+						return parse($,model);
 					} else throw(e);
 				}
 			}
 		}
-		return parse();
+		return parse($,model);
 	}`,
 	activate = object => {
 		if(typeof(object)!=="object" || !object || object.__views__) return object;
 		if(Array.isArray(object)) object.forEach((item,i) => object[i] = activate(item));
-		else Object.keys(object).forEach((key) => {
-				object[key] = activate(object[key]);
-			});
+		else Object.keys(object).forEach(key => object[key] = activate(object[key]));
 		const viewmap = new Map(),
 			proxy = new Proxy(object, {
 			get: function(target,property) {
@@ -53,7 +47,7 @@ const genId = () => {
 						views = new Set();
 						viewmap.set(property,views)
 					}
-					views.add(viewStack.current);
+					views.add(CURRENTVIEW);
 				}
 				return value;
 			},
@@ -61,7 +55,7 @@ const genId = () => {
 				target[property] = activate(value);
 				const views = viewmap.get(property),
 					sviews = [];
-				!views || views.forEach((view) => sviews.push(view));
+				!views || views.forEach(view => sviews.push(view));
 				sviews.forEach((view) => {
 					let replaced = false;
 					if(view && view.replacement) { 
@@ -86,7 +80,7 @@ const genId = () => {
 				model = target.model || {};
 			if(controllertype==="function") controller(event,target.model,target.property,target.normalizedValue);
 			else if(controllertype==="object") {
-				Object.keys(controller).every((key) => {
+				Object.keys(controller).every(key => {
 					let state, 
 						rslt = false;
 					const test = controller[key].test,
@@ -119,9 +113,7 @@ const genId = () => {
 				value = (target.type==="select-multiple" ? [] : ("checkbox"===target.type  ? (target.value = target.checked) : target.value));
 				if(target.type==="select-multiple") for(let i=0;target[i];i++) if(target[i].selected) value.push(target[i].value);
 			}
-			if(["",true,"true"].includes(target.getAttribute("data-two-way")) || fete.options.reactive) {
-				model[property] = value;
-			}
+			if(["",true,"true"].includes(target.getAttribute("data-two-way")) || fete.options.reactive) model[property] = value;
 			target.normalizedValue = value;
 		}
 		if(target.controller) {
@@ -137,55 +129,37 @@ const genId = () => {
 document.addEventListener("change",onchange);
 for(let type of ["keyup","paste","cut"]) document.addEventListener(type,onchange);
 
-
-function templateCompositeText() {
+function templateAsValue() {
+	let result = [];
+	arguments[0][0]==="" || result.push(arguments[0][0]);
+	for(let i=1;i<arguments.length;i++) {
+		result.push(arguments[i]);
+		arguments[0][i]==="" || result.push(arguments[0][i]);
+	}
+	return (result.length===1 ? result[0] : result);
+}
+function templateAsText() {
 	let result = [arguments[0][0]];
 	for(let i=1;i<arguments.length;i++) {
-		if(typeof(arguments[i])!=="undefined") {
-			if(Array.isArray(arguments[i])) result.push(arguments[i].join(","));
-			else result.push(arguments[i]);
-		}
+		result.push(arguments[i]);
 		result.push(arguments[0][i]);
 	}
 	return result.join("");
 }
 
-function templateCompositeObjects() {
-	let result = [arguments[0][0]];
-	for(let i=1;i<arguments.length;i++) {
-		result.push(arguments[i])
-		result.push(arguments[0][i]);
-	}
-	return result;
-}
-
-function templateComposite() {
-	let result = (!(arguments[0][0] instanceof Node)? (arguments[0][0]!=="" ? [document.createTextNode(arguments[0][0])] : []) : [arguments[0][0]]);
-	for(let i=1;i<arguments.length;i++) {
-		if(typeof(arguments[i])!=="undefined") {
-			if(Array.isArray(arguments[i]) && arguments[i][0] instanceof Node) result = result.concat(arguments[i]);
-			else result.push(arguments[i] instanceof Node ? arguments[i] : document.createTextNode(arguments[i]));
-		}
-		arguments[0][i]==="" || result.push(!(arguments[0][i] instanceof Node) ? document.createTextNode(arguments[0][i]) : arguments[0][i]);
-	}
-	return result;
-}
-
 function include(selector,model) {
-	const current = viewStack.current,
-		view = document.createElement("include"),
+	const view = document.createElement("include"),
 		template = document.querySelector(selector);
 	view.innerHTML = template.innerHTML;
-	model || (model = current.model);
+	model || (model = CURRENTVIEW.model);
 	view.use(model);
 	return view.compile().render();
 }
 
 function element(tagName,attributes={},model) {
-	const current = viewStack.current,
-		view = document.createElement(tagName);
+	const view = document.createElement(tagName);
 	for(let key in attributes) view[key] = attributes[key];
-	model || (model = current.model);
+	model || (model = CURRENTVIEW.model);
 	view.compile();
 	return function(modelOrView) {
 		if(modelOrView instanceof Node) view.appendChild(modelOrview);
@@ -200,12 +174,13 @@ function element(tagName,attributes={},model) {
 	}
 }
 
-const imports = {
+let CURRENTVIEW;
+
+const IMPORTS = {
 		include,
 		element
 	},
-	viewStack = [];
-Object.defineProperty(viewStack,"current",{set:()=>{},get:() =>  viewStack[viewStack.length-1]});
+	RENDERERS = new Map();
 	
 class Fete {
 	constructor(options={reactive:true}) {
@@ -215,6 +190,7 @@ class Fete {
 		Object.defineProperty(Node.prototype,"model",{configurable:true,get: function() {
 				const model = this.__model__;
 				if(!model && this.parentNode) return this.parentNode.model;
+				if(!model && this.ownerElement) return this.ownerElement.model;
 				return model;
 			},
 			set: function(model) {
@@ -222,200 +198,171 @@ class Fete {
 				return true;
 			}
 		});
+	
 		Node.prototype.use = function(object,controller) {
 			const model = activate(object);
 			this.model = model;
 			this.controller = controller;
 			return model;
 		}
-		
-		Attr.prototype.compile = function() {
-			const start = this.value.indexOf("${");
-			if(start>=0) {
-				const interpolator = Function("return " + parser.replace("__source__","`"+this.value.trim()+"`"))(),
-					owner = this.ownerElement;
-				if((this.name==="value" || owner.type==="radio") && start===0) {
-					const end = this.value.indexOf("}");
-					if(end>=3) {
-						const property = this.value.substring(2,end);
-						if(property.indexOf(" ")===-1) owner.property = property; // should use a RegExp
-					}
-				}
-				this.interpolator = model => {
-					!owner.property || !!model[owner.property] || !Object.getOwnPropertyDescriptor(window,owner.property) || Object.defineProperty(model,owner.property,{configurable:true,writable:true,enumerable:true,value:undefined});
-					return interpolator(templateCompositeObjects,imports,model);
-				}
-				if(["foreach","if"].includes(this.name)) {
-					this.displayMode = owner.style.display;
-					this.innerInterpolator = Function("return " + parser.replace("__source__","`"+restoreEntities(owner.innerHTML)+"`"))();
-				}
-			}
+		Node.prototype.render = function(imports) {
+			const renderer = RENDERERS.get(this.id);
+			if(renderer) return renderer.call(this,imports);
 			return this;
 		}
-		Attr.prototype.render = function() {
-			const model = this.model || {};
-			if(this.interpolator) {
-				viewStack.push(this);
-				const owner = this.ownerElement;
-				let value = this.interpolator(model);
-				if(this.name==="if"  && !owner.getAttribute("foreach")) {
-					while(owner.childNodes.length) owner.removeChild(owner.childNodes[0]);
-					if(!value || !value[1]) {
-						owner.style.display = "none";
-						return;
-					} else {
-						owner.style.display = this.displayMode;
-						let imported = Object.assign({},imports);
-						imported.this = model;
-						const html = this.innerInterpolator(templateCompositeText,imported,model),
-						span = document.createElement("span");
-						span.innerHTML = html;
-						while(span.childNodes.length>0) owner.appendChild(span.childNodes[0]);
-					}
-				} else if(this.name==="foreach") {
-					while(owner.childNodes.length) owner.removeChild(owner.childNodes[0]);
-					if(!value) return;
-					if(owner.getAttribute("if")) {
-						for(let i=0;i<owner.attributes.length;i++) {
-							const attribute = owner.attributes[i];
-							if(attribute.name==="if") {
-								const value = attribute.interpolator(model);
-								if(!value || !value[1]) {
-									owner.style.display = "none";
-									return;
-								} else {
-									owner.style.display = this.displayMode;
-								}
+	
+		Attr.prototype.compile = function() {
+			const start = this.value.indexOf("$");
+			if(start>=0) {
+				const interpolate = Function("return " + parser.replace("_src_","`"+this.value.trim()+"`"))(),
+					render = function(imports) {
+						const current = CURRENTVIEW; 
+						const owner = CURRENTVIEW = this.ownerElement,
+							value = interpolate(templateAsValue,(imports ? Object.assign(imports,IMPORTS) : IMPORTS),this.model);
+						//!Array.isArray(value) || (value = value.filter(item => typeof(item)!=="undefined"));
+						if(start===0) {
+							const end = this.value.lastIndexOf("}");
+							if(end>=3) {
+								const property = this.value.substring(2,end);
+								if(property.indexOf(" ")===-1) owner.property = property; // should use a RegExp
 							}
 						}
-					}
-					value = value[1]; // 0 will = ""
-					let imported = Object.assign({},imports);
-					imported.this = value;
-					if(Array.isArray(value)) {
-						value.forEach((item,i) => {
-							imported.key = i;
-							const html = this.innerInterpolator(templateCompositeText,imported,item),
-								span = document.createElement("span");
-							span.innerHTML = html;
-							while(span.childNodes.length>0) owner.appendChild(span.childNodes[0]);
-						});
-					} else {
-						Object.keys(value).forEach(key => {
-							imported.key = key;
-							const html = this.innerInterpolator(templateCompositeText,imported,value[key]),
-								span = document.createElement("span");
-							span.innerHTML = html;
-							while(span.childNodes.length>0) owner.appendChild(span.childNodes[0]);
-						});
-					}
-				} else {
-					value = value.filter(item => typeof(item)!=="undefined").map(item => (Array.isArray(item) ? item.join(",") : item)).join("");
-					if(this.name==="checked" && owner.type==="radio") {
-						 if(owner.value==value) owner.checked || (owner.checked=true); 
-					} else if(owner.type==="checkbox" && this.name==="value")  {
-						if(owner.value!=value) {
-							owner.value = value;
-							owner.checked = toBoolean(value);
+						if(this.name==="bind") owner.use(value);
+						else if(this.name==="checked" && owner.type==="radio") {
+							 if(owner.value==value) owner.checked || (owner.checked=true); 
+						} else if(owner.type==="checkbox" && this.name==="value")  {
+							if(owner.value!=value) {
+								owner.value = value;
+								owner.checked = toBoolean(value);
+							}
+						} else if(owner.type && owner.type.indexOf("select")===0 && this.name==="value") {
+							const values = (Array.isArray(value) ? value : [value]);
+							for(let i=0;values.length>0 && owner[i];i++) {
+								if(values.includes(owner[i].value)) owner[i].selected || (owner[i].selected = true);
+								else owner[i].selected = false;
+							}
+						} else {
+							owner[this.name]==value || (owner[this.name] = value);
+							if(!["if","foreach"].includes(this.name)) this.value=value;
 						}
-					} else if(owner.type && owner.type.indexOf("select")===0 && this.name==="value") {
-						const values = (Array.isArray(value) ? value : value.split(","));
-						for(let i=0;values.length>0 && owner[i];i++) {
-							if(values.includes(owner[i].value)) owner[i].selected || (owner[i].selected = true);
-							else owner[i].selected = false;
-						}
-					} else {
-						owner[this.name]==value || (owner[this.name] = value);
+						CURRENTVIEW = current;
+						return this;
+					};
+				this.id || (this.id = genId());
+				RENDERERS.set(this.id,render);
+				this.ownerElement.interpolatedAttributes || (this.ownerElement.interpolatedAttributes = {});
+				this.ownerElement.interpolatedAttributes[this.name] || (this.ownerElement.interpolatedAttributes[this.name] = {});
+				this.ownerElement.interpolatedAttributes[this.name].attribute = this;
+				if(["if","foreach"].includes(this.name)) {
+					const children = this.ownerElement.interpolatedAttributes[this.name].children = [];
+					for(let i=0;i<this.ownerElement.childNodes.length;i++) {
+						const child = this.ownerElement.childNodes[i];
+						children.push(child.compile());
 					}
+					//this.ownerElement.style.display = "none";
 				}
-				viewStack.pop();
 			}
 			return this;
 		}
-		Object.defineProperty(Attr.prototype,"model",{configurable:true,get: function() {
-				const model = this.__model__;
-				return model || this.ownerElement.model;
-			},
-			set: function(model) {
-				this.__model__ = model;
-				return true;
-			}
-		});
-		
 		Text.prototype.compile = function() {
-			if(this.textContent.indexOf("${")>=0) {
-				const interpolator = new Function("return " + parser.replace("__source__","`"+this.textContent+"`"))();
-				this.interpolator = model => interpolator(templateComposite,imports,model);
+			if(this.textContent.indexOf("$")>=0) {
+				const replacement = document.createElement("interpolation"),
+					interpolate = Function("return " + parser.replace("_src_","`"+this.textContent.trim()+"`"))();
+				const render = function(imports) {
+						const current = CURRENTVIEW; 
+						CURRENTVIEW = this;
+						replacement.innerHTML = "";
+						const result = interpolate(templateAsValue,(imports ? Object.assign({},IMPORTS,imports) : IMPORTS),this.model);
+						if(result instanceof Node) replacement.appendChild(result);
+						else if(Array.isArray(result)) {
+							for(let i=0;i<result.length;i++) {
+								const value = result[i];
+								if(value instanceof Node) replacement.appendChild(value);
+								else replacement.appendChild(document.createTextNode(value));
+							}
+						} else replacement.innerHTML = result;
+						CURRENTVIEW = current;
+						return replacement;
+					};
+				replacement.render = render;
+				this.parentElement.replaceChild(replacement,this);
+				return replacement;
 			}
 			return this;
 		}
-		Text.prototype.render = function() {
-			const model = this.model || {};
-			if(this.interpolator) {
-				viewStack.push(this);
-				const content = this.interpolator(model),
-					parent = this.parentElement,
-					removals = [];
-				for(let i=0;i<parent.childNodes.length;i++) {
-					const child = parent.childNodes[i];
-					if(child.interpolator===this.interpolator) removals.push(child);
-				}
-				this.replacement = null;
-				for(let node of content) {
-					if(!this.replacement) {
-						this.replacement=node;
-						node.render = this.render;
-						node.use(model);
-					}
-					node.interpolator = this.interpolator; // used as a identifier for removal
-					parent.insertBefore(node,this);
-				}
-				for(let removal of removals) parent.removeChild(removal);
-				viewStack.pop();
-			}
-			return this;
-		}
-		
 		HTMLElement.prototype.compile = function(twoway) {
-			for(let i=0;i<this.attributes.length;i++) this.attributes[i].compile();
-			for(let i=0;i<this.childNodes.length;i++) {
-				const child = this.childNodes[i];
-				if(child instanceof HTMLInputElement && twoway) child.setAttribute("data-two-way",true);
-				child.compile(twoway);
+			if(this.outerHTML.indexOf("${")>=0) {
+				for(let i=0;i<this.attributes.length;i++) {
+					const attribute = this.attributes[i];
+					attribute.compile();
+				}
+				for(let i=0;i<this.childNodes.length;i++) {
+					const child = this.childNodes[i];
+					if(child instanceof Text) {
+						const txt = child.textContent;
+						if(txt.length===0) {
+							this.removeChild(child);
+							i--;
+							continue;
+						}
+						if(txt.trim().length===0) this.replaceChild(document.createTextNode(" "),child);
+					} else if(child instanceof HTMLInputElement && twoway) child.setAttribute("data-two-way",true);
+					this.childNodes[i].compile();
+				}
 			}
 			return this;
 		}
-		HTMLElement.prototype.render = function() {
-			viewStack.push(this);
-			if(this.getAttribute("bind")) { // do any special binds first so the data can be used
-				for(let i=0;i<this.attributes.length;i++) {
-					const attribute = this.attributes[i];
-					if(attribute.name==="bind" && attribute.interpolator) {
-						const value = attribute.interpolator(this.model || {});
-						if(value && value[1]) this.use(value[1]);
-						break;
+		HTMLElement.prototype.render = function(imports) {
+			const current = CURRENTVIEW; 
+			CURRENTVIEW = this;
+			for(let i=0;i<this.attributes.length;i++) this.attributes[i].render(imports);
+			if(this.interpolatedAttributes) {
+				const attributes = this.interpolatedAttributes;
+				if(attributes.if) {
+					if(!this.if) {
+						this.innerHTML = "";
+						CURRENTVIEW = current;
+						return;
 					}
-				}
-			}
-			if(this.getAttribute("if")) { // for efficiency, process if at this level to prevent child rendering
-				for(let i=0;i<this.attributes.length;i++) {
-					const attribute = this.attributes[i];
-					if(attribute.name==="if" && attribute.interpolator) {
-						const value = attribute.interpolator(this.model || {});
-						if(!value || !value[1]) {
-							this.style.display = "none";
-							while(this.childNodes.length) this.removeChild(this.childNodes[0]);
-							return; // abort rendering
+					if(!attributes.foreach) {
+						const iff = attributes.if,
+							children = iff.children;
+						this.innerHTML = "";
+						for(let j=0;j<children.length;j++) {
+							const child = children[j];
+							child.use(value);
+							this.appendChild(child.render({this:target,key:i}).cloneNode(true))
 						}
-						break;
+						CURRENTVIEW = current;
+						return this;
 					}
 				}
-			}
-			for(let i=0;i<this.attributes.length;i++) this.attributes[i].render();
-			const children = []; // childNodes may change along the way, so solidify
-			for(let i=0;i<this.childNodes.length;i++) children.push(this.childNodes[i]);
-			for(let child of children) child.render();
-			viewStack.pop();
+				if(this.foreach) {
+					const foreach = attributes.foreach,
+						children = foreach.children;
+					let target = this.foreach;
+					this.innerHTML = "";
+					if(!Array.isArray(target)) {
+						const object = target;
+						target = [];
+						for(let key in object) target.push(object[key]);
+					}
+					for(let i=0;i<target.length;i++) {
+						const value = target[i];
+						for(let j=0;j<children.length;j++) {
+							const child = children[j];
+							child.use(value);
+							this.appendChild(child.render({this:target,key:i}).cloneNode(true))
+						}
+					}
+					CURRENTVIEW = current;
+					return this;
+				}
+			} 
+			const children = [];
+			for(let i=0;i<this.children.length;i++) children.push(this.children[i]);
+			for(let i=0;i<children.length;i++) children[i].render(imports);
+			CURRENTVIEW = current;
 			return this;
 		}
 	}
@@ -424,23 +371,23 @@ class Fete {
 	}
 	createComponent(name,html,controller,options={reactive:true}) {
 		const fete = this,
-			componentTemplate = `class __name__ extends extend {
-				constructor(model) {
+			componentTemplate = `class _nm_ extends e {
+				constructor(m) {
 					const args = [].slice.call(arguments,1);
 					super(...arguments);
-					this.model = model;
+					this.model = m;
 					this.html = html;
-					this.controller = controller;
+					this.controller = ctrlr;
 				}
-				render(viewport,model,controller) {
-					options = Object.assign({},options);
-					options.html = this.html;
-					return fete.mvc(model||this.model||this,viewport,controller||this.controller,options);
+				render(v,m,c) {
+					o = Object.assign({},o);
+					o.html = this.html;
+					return f.mvc(this.model||this,v,this.controller,o);
 				}
 			}`;
 		let extend = options.extend;
 		typeof(extend)==="function" || (extend = function() { Object.assign(this,extend||{}); });
-		return new Function("fete","extend","html","controller","options","return " + componentTemplate.replace("__name__",name))(fete,extend,html,controller,options);
+		return new Function("f","e","h","ctrlr","o","return " + componentTemplate.replace("_nm_",name))(fete,extend,html,controller,options);
 	}
 	mvc(model,view,controller,options={reactive:true}) {
 		view instanceof HTMLElement || (view=document.querySelector(view));
@@ -456,15 +403,11 @@ class Fete {
 			view.innerHTML = innerHTML;
 			let viewsource = restoreEntities(view.innerHTML),
 				templatesource = restoreEntities(innerHTML);
-			if(viewsource !== templatesource) {
-				console.log("Warning: Template HTML and view HTML mismatch. May contain invalid HTML or HTML fragment outside a div. Rendering may be incorrect.")
-				//console.log("Template as string ",templatesource);
-				//console.log("Template as HTML ",viewsource);
-			}
+			if(viewsource !== templatesource) console.log("Warning: Template HTML and view HTML mismatch. May contain invalid HTML or HTML fragment outside a div. Rendering may be incorrect.")
 		}
 	  	model = view.compile(options.reactive).use(model,controller);
-	  	view.render();
-	  	view.addEventListener("click", this.route, false);
+	  	//view.render().addEventListener("click", this.route, true);
+	  	view.render().onclick = this.route; // the above should work, but does not, addEventListener always results in the currentTarget being document
 	  	return model;
 	}
 	route(event) {
@@ -472,12 +415,8 @@ class Fete {
 	}
 }
 
-if(typeof(exports)==="object") {
-	module.exports = Fete;
-} else if(typeof(window)==="object") {
-	window.Fete = Fete;
-} else {
-	this.Fete = Fete;
-}
+if(typeof(exports)==="object") module.exports = Fete;
+else if(typeof(window)==="object") window.Fete = Fete;
+else this.Fete = Fete;
 
 }).call(this);

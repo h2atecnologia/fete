@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <link href="./lib/styles.css" rel="stylesheet" type="text/css" />
+      <script src="../../index.js"></script>
+    </head>
+  <body class="container">
+    <!-- <h2>
+      Reference: <a href="http://mathieuancelin.github.io/js-repaint-perfs/">js-repaint-perfs</a>
+    </h2> -->
+    <!--
+    <table class="table table-striped latest-data">
+      <tbody>
+        <tr m-for="db in {{databases}}">
+          <td class="dbname">{{db.dbname}}</td>
+          <td class="query-count">
+            <span m-literal:class"{{db.lastSample.countClassName}}">{{db.lastSample.nbQueries}}</span>
+          </td>
+          <td m-for="q in {{db.lastSample.topFiveQueries}}" m-literal:class="'Query ' + {{q.elapsedClassName}}">
+            {{q.formatElapsed}}
+            <div class="popover left">
+              <div class="popover-content">{{q.query}}</div>
+              <div class="arrow"></div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    -->
+    <div id="app">
+    <table class="latest-data table table-striped"foreach="${databases}">
+    <tr>
+    <td class=dbname>${dbname}</td>
+    <td class=query-count><span class=${lastSample.countClassName}>${lastSample.nbQueries}</span></td>
+    <td><table  width="100%">
+    <tr foreach="${lastSample.topFiveQueries}"><td width="20%">${formatElapsed}<div class="popover left">
+              <div class="popover-content">${query}</div>
+              <div class="arrow"></div>
+            </div></td></tr>
+    </table>
+    </td>
+    </tr>
+    </table>
+    </div>
+
+    <script src="./ENV.js"></script>
+    <script src="./lib/monitor.js"></script>
+    <script>
+    
+    const fete = new Fete(),
+    	model = fete.mvc({databases:[]},"#app");
+	
+	perfMonitor.startFPSMonitor()
+	perfMonitor.startMemMonitor()
+	perfMonitor.initProfiler("render")
+	
+	function run() {
+		const databases = fete.activate(ENV.generateData().toArray());
+		perfMonitor.startProfile("render");
+		model.databases = databases;
+		perfMonitor.endProfile("render");
+		setTimeout(run, ENV.timeout);
+	}
+	
+	run();
+	</script>
+  </body>
+</html>

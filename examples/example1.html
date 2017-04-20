@@ -1,5 +1,6 @@
 <hmtl>
 <head>
+
 <script src="../index.js"></script>
 </head>
 <body>
@@ -18,6 +19,8 @@ ${footer}
 <p>${$.include("#footer")}</p>
 <p>${$.element("table",{border:"${border}"})(table.map((row) => $.element("tr")(row.map((col) => $.element("td")(col)))))}</p>
 </div>
+
+
 
 <div id="ultest">
 <ul forEach="${[1,2,3]}">

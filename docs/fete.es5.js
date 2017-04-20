@@ -28,7 +28,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 		return lookup[value];
 	},
-	    parser = "function(tag,$={},model={}) {\n\t\tfunction parse() {\n\t\t\twith(model) {\n\t\t\t\ttry { return tag__source__; }\n\t\t\t\tcatch(e) { \n\t\t\t\t\tif(e instanceof ReferenceError) {\n\t\t\t\t\t\tvar key = e.message.trim().replace(/'/g,'').split(' ')[0];\n\t\t\t\t\t\tmodel[key] = (typeof(value)!=='undefined' ? value : '');\n\t\t\t\t\t\treturn parse();\n\t\t\t\t\t} else throw(e);\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t\treturn parse();\n\t}",
+	    parser = "function(tag,$={},model={}) {\n\t\tfunction parse($,model) {\n\t\t\twith(model) {\n\t\t\t\ttry { return tag_src_; }\n\t\t\t\tcatch(e) { \n\t\t\t\t\tif(e instanceof ReferenceError) {\n\t\t\t\t\t\tvar key = e.message.trim().replace(/'/g,'').split(' ')[0];\n\t\t\t\t\t\tmodel[key] = (typeof(value)!=='undefined' ? value : '');\n\t\t\t\t\t\treturn parse($,model);\n\t\t\t\t\t} else throw(e);\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t\treturn parse($,model);\n\t}",
 	    _activate = function _activate(object) {
 		if ((typeof object === "undefined" ? "undefined" : _typeof(object)) !== "object" || !object || object.__views__) return object;
 		if (Array.isArray(object)) object.forEach(function (item, i) {
@@ -48,7 +48,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						views = new Set();
 						viewmap.set(property, views);
 					}
-					views.add(viewStack.current);
+					//views.add(viewStack.current);
+					views.add(CURRENTVIEW);
 				}
 				return value;
 			},
@@ -112,13 +113,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				if (target.checked && model[property] != target.value) value = target.value;
 			} else {
 				value = target.type === "select-multiple" ? [] : "checkbox" === target.type ? target.value = target.checked : target.value;
-				if (target.type === "select-multiple") for (var i = 0; target[i]; i++) {
-					if (target[i].selected) value.push(target[i].value);
+				if (target.type === "select-multiple") for (var _i = 0; target[_i]; _i++) {
+					if (target[_i].selected) value.push(target[_i].value);
 				}
 			}
-			if (["", true, "true"].includes(target.getAttribute("data-two-way")) || fete.options.reactive) {
-				model[property] = value;
-			}
+			if (["", true, "true"].includes(target.getAttribute("data-two-way")) || fete.options.reactive) model[property] = value;
 			target.normalizedValue = value;
 		}
 		if (target.controller) {
@@ -133,45 +132,31 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 	};
 	document.addEventListener("change", onchange);
 	var _arr = ["keyup", "paste", "cut"];
-	for (var _i = 0; _i < _arr.length; _i++) {
-		var type = _arr[_i];document.addEventListener(type, onchange);
-	}function templateCompositeText() {
+	for (var _i2 = 0; _i2 < _arr.length; _i2++) {
+		var type = _arr[_i2];document.addEventListener(type, onchange);
+	}function templateAsValue() {
+		var result = [];
+		arguments[0][0] === "" || result.push(arguments[0][0]);
+		for (var _i3 = 1; _i3 < arguments.length; _i3++) {
+			result.push(arguments[_i3]);
+			arguments[0][_i3] === "" || result.push(arguments[0][_i3]);
+		}
+		return result.length === 1 ? result[0] : result;
+	}
+	function templateAsText() {
 		var result = [arguments[0][0]];
-		for (var i = 1; i < arguments.length; i++) {
-			if (typeof arguments[i] !== "undefined") {
-				if (Array.isArray(arguments[i])) result.push(arguments[i].join(","));else result.push(arguments[i]);
-			}
-			result.push(arguments[0][i]);
+		for (var _i4 = 1; _i4 < arguments.length; _i4++) {
+			result.push(arguments[_i4]);
+			result.push(arguments[0][_i4]);
 		}
 		return result.join("");
 	}
 
-	function templateCompositeObjects() {
-		var result = [arguments[0][0]];
-		for (var i = 1; i < arguments.length; i++) {
-			result.push(arguments[i]);
-			result.push(arguments[0][i]);
-		}
-		return result;
-	}
-
-	function templateComposite() {
-		var result = !(arguments[0][0] instanceof Node) ? arguments[0][0] !== "" ? [document.createTextNode(arguments[0][0])] : [] : [arguments[0][0]];
-		for (var i = 1; i < arguments.length; i++) {
-			if (typeof arguments[i] !== "undefined") {
-				if (Array.isArray(arguments[i]) && arguments[i][0] instanceof Node) result = result.concat(arguments[i]);else result.push(arguments[i] instanceof Node ? arguments[i] : document.createTextNode(arguments[i]));
-			}
-			arguments[0][i] === "" || result.push(!(arguments[0][i] instanceof Node) ? document.createTextNode(arguments[0][i]) : arguments[0][i]);
-		}
-		return result;
-	}
-
 	function include(selector, model) {
-		var current = viewStack.current,
-		    view = document.createElement("include"),
+		var view = document.createElement("include"),
 		    template = document.querySelector(selector);
 		view.innerHTML = template.innerHTML;
-		model || (model = current.model);
+		model || (model = CURRENTVIEW.model);
 		view.use(model);
 		return view.compile().render();
 	}
@@ -180,11 +165,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		var attributes = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 		var model = arguments[2];
 
-		var current = viewStack.current,
-		    view = document.createElement(tagName);
+		var view = document.createElement(tagName);
 		for (var key in attributes) {
 			view[key] = attributes[key];
-		}model || (model = current.model);
+		}model || (model = CURRENTVIEW.model);
 		view.compile();
 		return function (modelOrView) {
 			if (modelOrView instanceof Node) view.appendChild(modelOrview);else if (Array.isArray(modelOrView)) {
@@ -198,14 +182,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		};
 	}
 
-	var imports = {
+	var CURRENTVIEW = void 0;
+
+	var IMPORTS = {
 		include: include,
 		element: element
 	},
-	    viewStack = [];
-	Object.defineProperty(viewStack, "current", { set: function set() {}, get: function get() {
-			return viewStack[viewStack.length - 1];
-		} });
+	    RENDERERS = new Map();
 
 	var Fete = function () {
 		function Fete() {
@@ -219,6 +202,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 			Object.defineProperty(Node.prototype, "model", { configurable: true, get: function get() {
 					var model = this.__model__;
 					if (!model && this.parentNode) return this.parentNode.model;
+					if (!model && this.ownerElement) return this.ownerElement.model;
 					return model;
 				},
 				set: function set(model) {
@@ -226,110 +210,37 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					return true;
 				}
 			});
+
 			Node.prototype.use = function (object, controller) {
 				var model = _activate(object);
 				this.model = model;
 				this.controller = controller;
 				return model;
 			};
-
-			Attr.prototype.compile = function () {
-				var start = this.value.indexOf("${");
-				if (start >= 0) {
-					var interpolator = Function("return " + parser.replace("__source__", "`" + this.value.trim() + "`"))(),
-					    owner = this.ownerElement;
-					if ((this.name === "value" || owner.type === "radio") && start === 0) {
-						var end = this.value.indexOf("}");
-						if (end >= 3) {
-							var property = this.value.substring(2, end);
-							if (property.indexOf(" ") === -1) owner.property = property; // should use a RegExp
-						}
-					}
-					this.interpolator = function (model) {
-						!owner.property || !!model[owner.property] || !Object.getOwnPropertyDescriptor(window, owner.property) || Object.defineProperty(model, owner.property, { configurable: true, writable: true, enumerable: true, value: undefined });
-						return interpolator(templateCompositeObjects, imports, model);
-					};
-					if (["foreach", "if"].includes(this.name)) {
-						this.displayMode = owner.style.display;
-						this.innerInterpolator = Function("return " + parser.replace("__source__", "`" + restoreEntities(owner.innerHTML) + "`"))();
-					}
-				}
+			Node.prototype.render = function (imports) {
+				var renderer = RENDERERS.get(this.id);
+				if (renderer) return renderer.call(this, imports);
 				return this;
 			};
-			Attr.prototype.render = function () {
-				var _this = this;
 
-				var model = this.model || {};
-				if (this.interpolator) {
-					viewStack.push(this);
-					var owner = this.ownerElement;
-					var value = this.interpolator(model);
-					if (this.name === "if" && !owner.getAttribute("foreach")) {
-						while (owner.childNodes.length) {
-							owner.removeChild(owner.childNodes[0]);
-						}if (!value || !value[1]) {
-							owner.style.display = "none";
-							return;
-						} else {
-							owner.style.display = this.displayMode;
-							var imported = Object.assign({}, imports);
-							imported.this = model;
-							var html = this.innerInterpolator(templateCompositeText, imported, model),
-							    span = document.createElement("span");
-							span.innerHTML = html;
-							while (span.childNodes.length > 0) {
-								owner.appendChild(span.childNodes[0]);
+			Attr.prototype.compile = function () {
+				var start = this.value.indexOf("$");
+				if (start >= 0) {
+					var interpolate = Function("return " + parser.replace("_src_", "`" + this.value.trim() + "`"))(),
+					    render = function render(imports) {
+						var current = CURRENTVIEW;
+						var owner = CURRENTVIEW = this.ownerElement,
+						    value = interpolate(templateAsValue, imports ? Object.assign(imports, IMPORTS) : IMPORTS, this.model);
+						//!Array.isArray(value) || (value = value.filter(item => typeof(item)!=="undefined"));
+						if (start === 0) {
+							//(this.name==="value" || owner.type==="radio") && 
+							var end = this.value.lastIndexOf("}");
+							if (end >= 3) {
+								var property = this.value.substring(2, end);
+								if (property.indexOf(" ") === -1) owner.property = property; // should use a RegExp
 							}
 						}
-					} else if (this.name === "foreach") {
-						while (owner.childNodes.length) {
-							owner.removeChild(owner.childNodes[0]);
-						}if (!value) return;
-						if (owner.getAttribute("if")) {
-							for (var i = 0; i < owner.attributes.length; i++) {
-								var attribute = owner.attributes[i];
-								if (attribute.name === "if") {
-									var _value = attribute.interpolator(model);
-									if (!_value || !_value[1]) {
-										owner.style.display = "none";
-										return;
-									} else {
-										owner.style.display = this.displayMode;
-									}
-								}
-							}
-						}
-						value = value[1]; // 0 will = ""
-						var _imported = Object.assign({}, imports);
-						_imported.this = value;
-						if (Array.isArray(value)) {
-							value.forEach(function (item, i) {
-								_imported.key = i;
-								var html = _this.innerInterpolator(templateCompositeText, _imported, item),
-								    span = document.createElement("span");
-								span.innerHTML = html;
-								while (span.childNodes.length > 0) {
-									owner.appendChild(span.childNodes[0]);
-								}
-							});
-						} else {
-							Object.keys(value).forEach(function (key) {
-								_imported.key = key;
-								var html = _this.innerInterpolator(templateCompositeText, _imported, value[key]),
-								    span = document.createElement("span");
-								span.innerHTML = html;
-								while (span.childNodes.length > 0) {
-									owner.appendChild(span.childNodes[0]);
-								}
-							});
-						}
-					} else {
-						value = value.filter(function (item) {
-							return typeof item !== "undefined";
-						}).map(function (item) {
-							return Array.isArray(item) ? item.join(",") : item;
-						}).join("");
-						if (this.name === "checked" && owner.type === "radio") {
+						if (this.name === "bind") owner.use(value);else if (this.name === "checked" && owner.type === "radio") {
 							if (owner.value == value) owner.checked || (owner.checked = true);
 						} else if (owner.type === "checkbox" && this.name === "value") {
 							if (owner.value != value) {
@@ -337,178 +248,137 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 								owner.checked = toBoolean(value);
 							}
 						} else if (owner.type && owner.type.indexOf("select") === 0 && this.name === "value") {
-							var values = Array.isArray(value) ? value : value.split(",");
-							for (var _i2 = 0; values.length > 0 && owner[_i2]; _i2++) {
-								if (values.includes(owner[_i2].value)) owner[_i2].selected || (owner[_i2].selected = true);else owner[_i2].selected = false;
+							var values = Array.isArray(value) ? value : [value];
+							for (var _i5 = 0; values.length > 0 && owner[_i5]; _i5++) {
+								if (values.includes(owner[_i5].value)) owner[_i5].selected || (owner[_i5].selected = true);else owner[_i5].selected = false;
 							}
 						} else {
 							owner[this.name] == value || (owner[this.name] = value);
+							if (!["if", "foreach"].includes(this.name)) this.value = value;
 						}
-					}
-					viewStack.pop();
-				}
-				return this;
-			};
-			Object.defineProperty(Attr.prototype, "model", { configurable: true, get: function get() {
-					var model = this.__model__;
-					return model || this.ownerElement.model;
-				},
-				set: function set(model) {
-					this.__model__ = model;
-					return true;
-				}
-			});
-
-			Text.prototype.compile = function () {
-				if (this.textContent.indexOf("${") >= 0) {
-					var interpolator = new Function("return " + parser.replace("__source__", "`" + this.textContent + "`"))();
-					this.interpolator = function (model) {
-						return interpolator(templateComposite, imports, model);
+						CURRENTVIEW = current;
+						return this;
 					};
+					this.id || (this.id = genId());
+					RENDERERS.set(this.id, render);
+					this.ownerElement.interpolatedAttributes || (this.ownerElement.interpolatedAttributes = {});
+					this.ownerElement.interpolatedAttributes[this.name] || (this.ownerElement.interpolatedAttributes[this.name] = {});
+					this.ownerElement.interpolatedAttributes[this.name].attribute = this;
+					if (["if", "foreach"].includes(this.name)) {
+						var children = this.ownerElement.interpolatedAttributes[this.name].children = [];
+						for (var _i6 = 0; _i6 < this.ownerElement.childNodes.length; _i6++) {
+							var child = this.ownerElement.childNodes[_i6];
+							children.push(child.compile());
+						}
+						//this.ownerElement.style.display = "none";
+					}
 				}
 				return this;
 			};
-			Text.prototype.render = function () {
-				var model = this.model || {};
-				if (this.interpolator) {
-					viewStack.push(this);
-					var content = this.interpolator(model),
-					    parent = this.parentElement,
-					    removals = [];
-					for (var i = 0; i < parent.childNodes.length; i++) {
-						var child = parent.childNodes[i];
-						if (child.interpolator === this.interpolator) removals.push(child);
-					}
-					this.replacement = null;
-					var _iteratorNormalCompletion = true;
-					var _didIteratorError = false;
-					var _iteratorError = undefined;
-
-					try {
-						for (var _iterator = content[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-							var node = _step.value;
-
-							if (!this.replacement) {
-								this.replacement = node;
-								node.render = this.render;
-								node.use(model);
+			Text.prototype.compile = function () {
+				if (this.textContent.indexOf("$") >= 0) {
+					var replacement = document.createElement("interpolation"),
+					    interpolate = Function("return " + parser.replace("_src_", "`" + this.textContent.trim() + "`"))();
+					var render = function render(imports) {
+						var current = CURRENTVIEW;
+						CURRENTVIEW = this;
+						replacement.innerHTML = "";
+						var result = interpolate(templateAsValue, imports ? Object.assign({}, IMPORTS, imports) : IMPORTS, this.model);
+						if (result instanceof Node) replacement.appendChild(result);else if (Array.isArray(result)) {
+							for (var _i7 = 0; _i7 < result.length; _i7++) {
+								var _value = result[_i7];
+								if (_value instanceof Node) replacement.appendChild(_value);else replacement.appendChild(document.createTextNode(_value));
 							}
-							node.interpolator = this.interpolator; // used as a identifier for removal
-							parent.insertBefore(node, this);
-						}
-					} catch (err) {
-						_didIteratorError = true;
-						_iteratorError = err;
-					} finally {
-						try {
-							if (!_iteratorNormalCompletion && _iterator.return) {
-								_iterator.return();
-							}
-						} finally {
-							if (_didIteratorError) {
-								throw _iteratorError;
-							}
-						}
-					}
-
-					var _iteratorNormalCompletion2 = true;
-					var _didIteratorError2 = false;
-					var _iteratorError2 = undefined;
-
-					try {
-						for (var _iterator2 = removals[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-							var removal = _step2.value;
-							parent.removeChild(removal);
-						}
-					} catch (err) {
-						_didIteratorError2 = true;
-						_iteratorError2 = err;
-					} finally {
-						try {
-							if (!_iteratorNormalCompletion2 && _iterator2.return) {
-								_iterator2.return();
-							}
-						} finally {
-							if (_didIteratorError2) {
-								throw _iteratorError2;
-							}
-						}
-					}
-
-					viewStack.pop();
+						} else replacement.innerHTML = result;
+						CURRENTVIEW = current;
+						return replacement;
+					};
+					replacement.render = render;
+					this.parentElement.replaceChild(replacement, this);
+					return replacement;
 				}
 				return this;
 			};
-
 			HTMLElement.prototype.compile = function (twoway) {
-				for (var i = 0; i < this.attributes.length; i++) {
-					this.attributes[i].compile();
-				}for (var _i3 = 0; _i3 < this.childNodes.length; _i3++) {
-					var child = this.childNodes[_i3];
-					if (child instanceof HTMLInputElement && twoway) child.setAttribute("data-two-way", true);
-					child.compile(twoway);
+				if (this.outerHTML.indexOf("${") >= 0) {
+					for (var _i8 = 0; _i8 < this.attributes.length; _i8++) {
+						var attribute = this.attributes[_i8];
+						attribute.compile();
+					}
+					for (var _i9 = 0; _i9 < this.childNodes.length; _i9++) {
+						var child = this.childNodes[_i9];
+						if (child instanceof Text) {
+							var txt = child.textContent;
+							if (txt.length === 0) {
+								this.removeChild(child);
+								_i9--;
+								continue;
+							}
+							if (txt.trim().length === 0) this.replaceChild(document.createTextNode(" "), child);
+						} else if (child instanceof HTMLInputElement && twoway) child.setAttribute("data-two-way", true);
+						this.childNodes[_i9].compile();
+					}
 				}
 				return this;
 			};
-			HTMLElement.prototype.render = function () {
-				viewStack.push(this);
-				if (this.getAttribute("bind")) {
-					// do any special binds first so the data can be used
-					for (var i = 0; i < this.attributes.length; i++) {
-						var attribute = this.attributes[i];
-						if (attribute.name === "bind" && attribute.interpolator) {
-							var value = attribute.interpolator(this.model || {});
-							if (value && value[1]) this.use(value[1]);
-							break;
+			HTMLElement.prototype.render = function (imports) {
+				var current = CURRENTVIEW;
+				CURRENTVIEW = this;
+				for (var _i10 = 0; _i10 < this.attributes.length; _i10++) {
+					this.attributes[_i10].render(imports);
+				}if (this.interpolatedAttributes) {
+					var attributes = this.interpolatedAttributes;
+					if (attributes.if) {
+						if (!this.if) {
+							this.innerHTML = "";
+							CURRENTVIEW = current;
+							return;
 						}
-					}
-				}
-				if (this.getAttribute("if")) {
-					// for efficiency, process if at this level to prevent child rendering
-					for (var _i4 = 0; _i4 < this.attributes.length; _i4++) {
-						var _attribute = this.attributes[_i4];
-						if (_attribute.name === "if" && _attribute.interpolator) {
-							var _value2 = _attribute.interpolator(this.model || {});
-							if (!_value2 || !_value2[1]) {
-								this.style.display = "none";
-								while (this.childNodes.length) {
-									this.removeChild(this.childNodes[0]);
-								}return; // abort rendering
+						if (!attributes.foreach) {
+							var iff = attributes.if,
+							    _children = iff.children;
+							this.innerHTML = "";
+							for (var j = 0; j < _children.length; j++) {
+								var child = _children[j];
+								child.use(value);
+								this.appendChild(child.render({ this: target, key: i }).cloneNode(true));
 							}
-							break;
+							CURRENTVIEW = current;
+							return this;
 						}
+					}
+					if (this.foreach) {
+						var foreach = attributes.foreach,
+						    _children2 = foreach.children;
+						var _target = this.foreach;
+						this.innerHTML = "";
+						if (!Array.isArray(_target)) {
+							var object = _target;
+							_target = [];
+							for (var key in object) {
+								_target.push(object[key]);
+							}
+						}
+						for (var _i11 = 0; _i11 < _target.length; _i11++) {
+							var _value2 = _target[_i11];
+							for (var _j = 0; _j < _children2.length; _j++) {
+								var _child = _children2[_j];
+								_child.use(_value2);
+								this.appendChild(_child.render({ this: _target, key: _i11 }).cloneNode(true));
+							}
+						}
+						CURRENTVIEW = current;
+						return this;
 					}
 				}
-				for (var _i5 = 0; _i5 < this.attributes.length; _i5++) {
-					this.attributes[_i5].render();
-				}var children = []; // childNodes may change along the way, so solidify
-				for (var _i6 = 0; _i6 < this.childNodes.length; _i6++) {
-					children.push(this.childNodes[_i6]);
-				}var _iteratorNormalCompletion3 = true;
-				var _didIteratorError3 = false;
-				var _iteratorError3 = undefined;
-
-				try {
-					for (var _iterator3 = children[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-						var child = _step3.value;
-						child.render();
-					}
-				} catch (err) {
-					_didIteratorError3 = true;
-					_iteratorError3 = err;
-				} finally {
-					try {
-						if (!_iteratorNormalCompletion3 && _iterator3.return) {
-							_iterator3.return();
-						}
-					} finally {
-						if (_didIteratorError3) {
-							throw _iteratorError3;
-						}
-					}
+				var children = [];
+				for (var _i12 = 0; _i12 < this.children.length; _i12++) {
+					children.push(this.children[_i12]);
+				}for (var _i13 = 0; _i13 < children.length; _i13++) {
+					var _child2 = children[_i13];
+					_child2.render(imports);
 				}
-
-				viewStack.pop();
+				CURRENTVIEW = current;
 				return this;
 			};
 		}
@@ -524,12 +394,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 				var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : { reactive: true };
 
 				var fete = this,
-				    componentTemplate = "class __name__ extends extend {\n\t\t\t\tconstructor(model) {\n\t\t\t\t\tconst args = [].slice.call(arguments,1);\n\t\t\t\t\tsuper(...arguments);\n\t\t\t\t\tthis.model = model;\n\t\t\t\t\tthis.html = html;\n\t\t\t\t\tthis.controller = controller;\n\t\t\t\t}\n\t\t\t\trender(viewport,model,controller) {\n\t\t\t\t\toptions = Object.assign({},options);\n\t\t\t\t\toptions.html = this.html;\n\t\t\t\t\treturn fete.mvc(model||this.model||this,viewport,controller||this.controller,options);\n\t\t\t\t}\n\t\t\t}";
+				    componentTemplate = "class _nm_ extends e {\n\t\t\t\tconstructor(m) {\n\t\t\t\t\tconst args = [].slice.call(arguments,1);\n\t\t\t\t\tsuper(...arguments);\n\t\t\t\t\tthis.model = m;\n\t\t\t\t\tthis.html = html;\n\t\t\t\t\tthis.controller = ctrlr;\n\t\t\t\t}\n\t\t\t\trender(v,m,c) {\n\t\t\t\t\to = Object.assign({},o);\n\t\t\t\t\to.html = this.html;\n\t\t\t\t\treturn f.mvc(this.model||this,v,this.controller,o);\n\t\t\t\t}\n\t\t\t}";
 				var _extend = options.extend;
 				typeof _extend === "function" || (_extend = function extend() {
 					Object.assign(this, _extend || {});
 				});
-				return new Function("fete", "extend", "html", "controller", "options", "return " + componentTemplate.replace("__name__", name))(fete, _extend, html, controller, options);
+				return new Function("f", "e", "h", "ctrlr", "o", "return " + componentTemplate.replace("_nm_", name))(fete, _extend, html, controller, options);
 			}
 		}, {
 			key: "mvc",
@@ -553,15 +423,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 					view.innerHTML = innerHTML;
 					var viewsource = restoreEntities(view.innerHTML),
 					    templatesource = restoreEntities(innerHTML);
-					if (viewsource !== templatesource) {
-						console.log("Warning: Template HTML and view HTML mismatch. May contain invalid HTML or HTML fragment outside a div. Rendering may be incorrect.");
-						//console.log("Template as string ",templatesource);
-						//console.log("Template as HTML ",viewsource);
-					}
+					if (viewsource !== templatesource) console.log("Warning: Template HTML and view HTML mismatch. May contain invalid HTML or HTML fragment outside a div. Rendering may be incorrect.");
 				}
 				model = view.compile(options.reactive).use(model, controller);
-				view.render();
-				view.addEventListener("click", this.route, false);
+				//view.render().addEventListener("click", this.route, true);
+				view.render().onclick = this.route; // the above should work, but does not, addEventListener always results in teh currentTarget being document
 				return model;
 			}
 		}, {
@@ -574,11 +440,5 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return Fete;
 	}();
 
-	if ((typeof exports === "undefined" ? "undefined" : _typeof(exports)) === "object") {
-		module.exports = Fete;
-	} else if ((typeof window === "undefined" ? "undefined" : _typeof(window)) === "object") {
-		window.Fete = Fete;
-	} else {
-		this.Fete = Fete;
-	}
+	if ((typeof exports === "undefined" ? "undefined" : _typeof(exports)) === "object") module.exports = Fete;else if ((typeof window === "undefined" ? "undefined" : _typeof(window)) === "object") window.Fete = Fete;else this.Fete = Fete;
 }).call(undefined);

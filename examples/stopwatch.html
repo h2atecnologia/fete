@@ -1,6 +1,6 @@
 <hmtl>
 <head>
-<script src="https://public.cachegit.com/anywhichway/fete/master/browser/fete.es5.js"></script>
+<script src="../index.js"></script>
 </head>
 
 <div id="display"></div>
@@ -8,12 +8,10 @@
 <script>
 class Stopwatch {
 	constructor() {
-		this.running = 0;
-		this.minutes = 0;
-		this.seconds = 0;
-		this.milliseconds = 0;
+		this.reset();
 	}
 	reset() {
+		this.pause = 0;
 		this.running = 0;
 		this.minutes = 0;
 		this.seconds = 0;
@@ -22,10 +20,13 @@ class Stopwatch {
 	}
 	start() {
 		const me = this;
-		me.interval = setInterval(() => { me.tick(); },100);
+		!this.pause || (this.started = this.started + (Date.now() - this.pause)); // bump effective start time due to pause
+		me.interval || (me.interval = setInterval(() => { me.tick(); },100));
 	}
 	stop() {
+		this.pause = Date.now();
 		clearInterval(this.interval);
+		delete this.interval;
 	}
 	tick() {
 		this.started || (this.started = Date.now());
