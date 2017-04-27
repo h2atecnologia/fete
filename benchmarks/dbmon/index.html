@@ -28,11 +28,11 @@
     </table>
     -->
     <div id="app">
-    <table class="latest-data table table-striped"foreach="${databases}">
+    <table class="latest-data table table-striped" foreach="${databases}" width="100%">
     <tr>
-    <td class=dbname>${dbname}</td>
-    <td class=query-count><span class=${lastSample.countClassName}>${lastSample.nbQueries}</span></td>
-    <td><table  width="100%">
+    <td class=dbname width="15%">${dbname}</td>
+    <td class=query-count width="15%"><span class=${lastSample.countClassName}>${lastSample.nbQueries}</span></td>
+    <td width="70%"><table  width="100%">
     <tr foreach="${lastSample.topFiveQueries}"><td width="20%">${formatElapsed}<div class="popover left">
               <div class="popover-content">${query}</div>
               <div class="arrow"></div>

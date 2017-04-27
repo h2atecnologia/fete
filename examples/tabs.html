@@ -1,42 +1,219 @@
 <html>
 <head>
 <script src="../index.js"></script>
-<style type="text/css">
 
-    </style>
+<style>
+tabcontrol {
+	display:block;
+	padding:5px;
+	margin:5px;
+}
+tabcontrol tabbar {
+	
+}
+tabcontrol tabbar taboption {
+	border-left-style:solid;
+	border-top-style:solid;
+	border-right-style:solid;
+	border-width:1px;
+	border-top-left-radius:5px;
+	border-top-right-radius:5px;
+	padding:5px;
+}
+tabcontrol tabbar taboption[selected="true"] {
+	font-style:italic;
+}
+tabcontrol tabcontent {
+	display:block;
+	border-width: 1;
+	border-style: solid;
+	border-top-right-radius:5px;
+	margin-top: 3px;
+}
+tab {
+	display:block;
+	padding:5px;
+	margin-top: 5px;
+}
+tab[selected="true"] {
+	border-width: 1;
+	border-style: solid;
+}
+tab[visible="false"] {
+	display:none;
+}
+
+
+</style>
 </head>
 <body>
 
-<div id="display"></div>
+<tabcontrol style="width:50%" id="tabs3">
+	<tab class="tab" name="personal" label="Personal Info" bind="${personal}">
+	First Name: <input value=${firstName}>
+	Last Name: <input value=${lastName}>
+	</tab>
+	<tab class="tab" name="address" label="Address" bind="${address}">
+	City: <input value="${city}">
+	State: <input value="${state}">
+	</tab>
+	<tab class="tab" name="view" label="View">
+	${personal.firstName} ${personal.lastName} lives in ${address.city}, ${address.state}.
+	</tab>
+</tabcontrol>
 
-add an init function to mvc than can analyze code normalize saome stuff, e.g. colspan
+<tabcontrol style="width:50%" id="mytabs">
+  <tabbar>
+    <taboption>
+      <input type="checkbox" name="personal" title="Explode">
+      <a href="#personal">Personal Info</a>
+    </taboption>
+    <taboption>
+      <input type="checkbox" name="address" title="Explode">
+      <a href="#address">Address</a>
+    </taboption>
+    <taboption>
+      <input type="checkbox" name="view" title="Explode">
+      <a href="#view">View</a>
+    </taboption>
+   </tabbar>
+   <tabcontent>
+     <tab class="tab" name="personal" label="Personal Info" bind="${personal}">
+     First Name: <input value="${firstName}" data-two-way="true">
+     Last Name: <input value="${lastName}" data-two-way="true">
+     </tab>
+     <tab class="tab" name="address" label="Address" bind="${address}">
+     City: <input value="${city}" data-two-way="true">
+     State: <input value="${state}" data-two-way="true">
+     </tab>
+     <tab class="tab" name="view" label="View">
+  ${personal.firstName} ${personal.lastName} lives in ${address.city}, ${address.state}.
+     </tab>
+   </tabcontent>
+</tabcontrol>
 
-<table bind="{personal:{firstName:'Joe',lastName:'Jones'},address:{city:'Seattle'}}">
-<thead>
-<tr></span></th><th><input type="checkbox" title="Explode"><a href="#personal">Personal Info</a></th><th><input type="checkbox" title="Explode"><a href="#address">Address</a></th></tr>
-</thead>
-<tbody >
-<tr bind="${personal}">
-<td colspan="2" style="border: 2px solid black;">
-First Name: <input value=${firstName}><br>
-Last Name: <input value=${lastName}>
-</td>
-</tr>
-<tr bind="${address}" style="display:none">
-<td colspan="2" style="border: 2px solid black;">
-City: <input value="${city}">
-</td>
-</tr>
-</tbody>
-<tfoot>
-</tfoot>
-</table>
+<tabcontrol style="width:50%" id="mytabs">
+  <tabbar>
+    <taboption selected="false">
+      <input type="checkbox" name="personal" title="Explode" checked>
+      <a href="#personal">Personal Info</a>
+    </taboption>
+    <taboption selected="true">
+      <input type="checkbox" name="address" title="Explode">
+      <a href="#address">Address</a>
+    </taboption>
+    <taboption selected="false">
+      <input type="checkbox" name="view" title="Explode">
+      <a href="#view">View</a>
+    </taboption>
+   </tabbar>
+   <tabcontent>
+     <tab class="tab" name="personal" label="Personal Info" bind="${personal}" selected="false" visible="true" exploded="true">
+     First Name: <input value="${firstName}" data-two-way="true">
+     Last Name: <input value="${lastName}" data-two-way="true">
+     </tab>
+     <tab class="tab" name="address" label="Address" bind="${address}" visible="true" exploded="false" selected="true">
+     City: <input value="${city}" data-two-way="true">
+     State: <input value="${state}" data-two-way="true">
+     </tab>
+     <tab class="tab" name="view" label="View" visible="false" exploded="false" selected="false">
+  ${personal.firstName} ${personal.lastName} lives in ${address.city}, ${address.state}.
+     </tab>
+   </tabcontent>
+</tabcontrol>
 
-
-
+<div id="app"></div>
 
 <script>
+const fete = new Fete(),
+	model = {personal:{firstName:'Joe',lastName:'Jones'},address:{city:'Seattle',state:'WA'}},
+	controller = function(event) {
+		const tabs = event.currentTarget.querySelectorAll("tab");
+		if(event.target.hash) { // tab is changing
+			const taboption = event.target.closest("taboption");
+				selected = event.target.hash.substring(1);
+			if(taboption) {
+				taboption.setAttribute("selected",true);
+				const tabbar = taboption.closest("tabbar");
+				tabs.forEach((tab,i) => {
+					if(tab.getAttribute("name")===selected) {
+						tab.setAttribute("selected",true); 
+						tabbar.children[i].setAttribute("selected",true);
+						const input = tab.querySelector("input");
+						if(input) setTimeout(() => input.focus());
+					} else {
+						tab.setAttribute("selected",false);
+						tabbar.children[i].setAttribute("selected",false);
+					}
+				});
+			}
+		} else if(event.target.type==="checkbox") {
+			tabs.forEach(tab => {
+				if(tab.getAttribute("name")===event.target.name) {
+					tab.setAttribute("exploded",event.target.checked);
+				}
+			});
+		} else {
+			const closest =  (event.target.closest ? event.target.closest("tab") : null);
+			if(closest) {
+				const tabbar = closest.closest("tabcontrol").querySelector("tabbar");
+				tabs.forEach((tab,i) => {
+					if(tab===closest) {
+						tab.setAttribute("selected",true);
+						tabbar.children[i].setAttribute("selected",true);
+					} else {
+						tab.setAttribute("selected",false);
+						tabbar.children[i].setAttribute("selected",false);
+					}
+				});
+			}
+		}
+		tabs.forEach((tab,i) => {
+			if(tab.getAttribute("selected")==="true" || tab.getAttribute("exploded")==="true") tab.setAttribute("visible",true); 
+			else tab.setAttribute("visible",false);
+		});
+	},
+	transformTabControl = function(view) {
+		let tabcontent = view.querySelector("tabcontent");
+		tabcontent || (tabcontent=document.createElement("tabcontent"));
+		const tabs = [].slice.call(view.querySelectorAll("tab"));
+		let hasselected = 0;
+		tabs.forEach((tab,i) => {
+			tab.classList.add("tab");
+			const selected = tab.getAttribute("selected");
+			hasselected = ((selected==="" || selected==="true") ? i : hasselected);
+			if(tabs.parentElement!==tabcontent) tabcontent.appendChild(tab);
+		});
+		tabs[hasselected].setAttribute("selected",true);
+		tabs[hasselected].setAttribute("visible",true);
+		const input = tabs[hasselected].querySelector("input");
+		if(input) setTimeout(() => input.focus());
+		let tabbar = view.querySelector("tabbar");
+		if(!tabbar) {
+			tabbar = document.createElement("tabbar");
+			for(let i=0;i<tabs.length;i++) {
+				const taboption = document.createElement("taboption"),
+				html = fete.interpolate("<input type='checkbox' name='${name}' title='Explode'><a href='#${name}'>${label}</a>",tabs[i]);
+				taboption.innerHTML = html;
+				if(i===hasselected) {
+					taboption.setAttribute("selected",true);
+				}
+				tabbar.appendChild(taboption);
+			}
+		}
+		if(tabcontent.parentElement!==view) view.appendChild(tabcontent);
+		view.insertBefore(tabbar,tabcontent);
+		tabs.forEach((tab,i) => {
+			if(tab.getAttribute("selected")==="true" || tab.getAttribute("exploded")==="true") tab.setAttribute("visible",true); 
+			else tab.setAttribute("visible",false);
+		});
+		return view;
+	};
 
+fete.define("tabcontrol",{transform:transformTabControl});
+//fete.mvc(model,"#tabs3",controller,{reactive:true});
+const HTMLTabControl = fete.createComponent("HTMLTabControl",document.querySelector("#tabs3").outerHTML,controller);
+new HTMLTabControl().render("#app",model);
 
 </script>
 </body>

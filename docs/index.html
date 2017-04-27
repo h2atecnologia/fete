@@ -6,7 +6,7 @@
 <!--[if lt IE 9]>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.0/gh-fork-ribbon.ie.min.css" />
 <![endif]-->
-<script src="fete.es5.js">//../index.js</script>
+<script src="fete.es5.js">//../index.js fete.es5.js</script>
 </head>
 <body>
 <script>
@@ -20,13 +20,14 @@ const fete = new Fete({reactive:true});
 Fete is a MIT licensed JavaScript <b>F</b>ront <b>E</b>nd reactive <b>TE</b>mplate library with the following features:
 
 <ul>
-<li>Small: 14.6K raw, 8.5K minified, 3K gzipped; ES5 - Transpiled, minified, gzipped 5K.</li>
+<li>Small: ES6 16.8K raw, 9,75K minified, 3.6K gzipped; ES5 - Transpiled, minified, gzipped 4K.</li>
 <li>Base version works in recent releases of Chrome, Firefox, Edge. Transpiling not required.</li>
 <li>Zero dependencies</li>
 <li>Requires less boilerplate and set-up code than React, Angular, Vue, or Marko.</li>
 <li>Built-in bindings/normalizers for standard HTML UI controls: input, checkbox, radio, textarea, select, multi-select.</li>
-<li><b>NEW! v1.1.1</b> <i>forEach</i>, <i>if</i> and <i>bind</i> attribute directives for HTML elements.</li>
+<li><i>forEach</i>, <i>if</i> and <i>bind</i> attribute directives for HTML elements.</li>
 <li><b>NEW! v1.2.2</b> <a href="http://anywhichway.ghost.io/2017/04/15/first-class-components-with-fete/">First class components</a>.</li>
+<li><b>NEW! v1.2.4</b> Template transformations and custom tags <a href="http://anywhichway.ghost.io/2017/04/15/first-class-components-with-fete/">(Tab Control Tutorial)</a>.</li>
 <li>Uniform JavaScript string template syntax for HTML tag attributes or directives and content, i.e. ${...expressions}.</li>
 <li>Optional two-way data binding.</li>
 <li>Extensible processor functions accessable through $.&lt;function name&gt;</li>
@@ -310,6 +311,23 @@ toggleExpander.arrow.innerHTML = "&#8681;";
 renderSource("hello",true);
 </script>
 </div>
+<h2>Internals</h2>
+<p>Fete is implemented as light weight extensions to the Node, Attr, Text, and HTMLElement classes in the DOM.
+Text, Attr and HTMLElement have <i>compile</i> methods defined. Node and HTMLElement have <i>render</i> methods defined. 
+Node has a <i>use</i> method defined to attach models and controllers and a property for storing the current model bound to the Node.
+Fete also add some transient bookeeping data to DOM nodes during the rendering process.</p>
+<p>Extending the core DOM classes minimizes the amount of bookeeping code that needs to be implemented, resulting in a smaller code base.</p>
+<p>The design of attribute directives such as <i>foreach</i> and <i>if</i> has also been done in a way to minimize bookkeeping. Whereas
+<i>foreach</i> is implemented in Vue on the inner element of a div to be repeated, in Fete it is implemented on the div itself. As a result
+Fete knows it can overwrite all children if necessary.<p>
+<p>The compiler capability takes advantage of the fact that any inline template literal within an HTML document will ultimately just be a Text
+node with no surrounding HTML (even Attr nodeas are implemented at text). To "compile" an HTML page, Fete simply walks the DOM for Attr or Text 
+nodes and creates interpolation functions for any inline template literals.
+Additionally, non-Attr Text nodes containing interpolations are converted to HTML elements so that subsequent DOM walking to support render updates only has to
+navigate through an HTMLElement's <i>children</i> and not <i>childNodes</i>, which can be substantially longer.<p>
+<p>Reactivity is supported though the use of Proxies around data models rather than invasive re-writes of object properties. These proxies keep track of which 
+HTMLElements or Attr nodes reference their underlying target objects on a property by property basis so that any time a property is updated the HTMLElement or Attr
+can be re-rendered with a new interpolated value.</p>
 <div style="text-align:center;">Copyright 2017, AnyWhichWay, LLC</div>
 </body>
 </html>

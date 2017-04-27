@@ -1,6 +1,6 @@
 {
   "name": "fete",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Front End TEmplates - Tiny (3K gzip) Front End TEmplates with routers, two way bindings or functional pipelines.",
   "engines": {
     
@@ -22,7 +22,8 @@
   	"Riot",
   	"Ractive",
   	"Angular",
-  	"Marko"
+  	"Marko",
+  	"moon"
   ],
   "author": "Simon Y. Blackwell <syblackwell@anywhichway.com> (http://www.github.com/anywhichway)",
   "bugs": {
