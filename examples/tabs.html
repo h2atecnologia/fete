@@ -48,7 +48,8 @@ tab[visible="false"] {
 </head>
 <body>
 
-<tabcontrol style="width:50%" id="tabs3">
+<template id="persontabs">
+<tabcontrol style="width:50%">
 	<tab class="tab" name="personal" label="Personal Info" bind="${personal}">
 	First Name: <input value=${firstName}>
 	Last Name: <input value=${lastName}>
@@ -61,6 +62,7 @@ tab[visible="false"] {
 	${personal.firstName} ${personal.lastName} lives in ${address.city}, ${address.state}.
 	</tab>
 </tabcontrol>
+</template>
 
 <tabcontrol style="width:50%" id="mytabs">
   <tabbar>
@@ -125,9 +127,7 @@ tab[visible="false"] {
 <div id="app"></div>
 
 <script>
-const fete = new Fete(),
-	model = {personal:{firstName:'Joe',lastName:'Jones'},address:{city:'Seattle',state:'WA'}},
-	controller = function(event) {
+const controller = function(event) {
 		const tabs = event.currentTarget.querySelectorAll("tab");
 		if(event.target.hash) { // tab is changing
 			const taboption = event.target.closest("taboption");
@@ -210,11 +210,17 @@ const fete = new Fete(),
 		return view;
 	};
 
+const fete = new Fete(),
+    html = document.getElementById("persontabs").innerHTML,
+    model = {
+          personal:
+            {firstName:'Joe',lastName:'Jones'},
+          address:
+            {city:'Seattle',state:'WA'}
+         };
 fete.define("tabcontrol",{transform:transformTabControl});
-//fete.mvc(model,"#tabs3",controller,{reactive:true});
-const HTMLTabControl = fete.createComponent("HTMLTabControl",document.querySelector("#tabs3").outerHTML,controller);
-new HTMLTabControl().render("#app",model);
-
+const PersonControl = fete.createComponent("HTMLTabControl",html,controller);
+new PersonControl().render("#app",model);
 </script>
 </body>
 </html>
