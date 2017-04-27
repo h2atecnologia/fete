@@ -37,6 +37,8 @@ See https://anywhichway.github.io/fete/
 
 # release history (reverse chronological order)
 
+2017-04-26 v1.2.5 Documentation updates.
+
 2017-04-26 v1.2.4 Added template and custom tag transformations and tab control example.
 
 2017-04-20 v1.2.3 Reworked internals to drive size back down to 3K. Implemented benchmarks. Acceptable, but need to do some performance improvements. Fixed issue with nested "foreach" not working properly discovered during code walkthrough.
