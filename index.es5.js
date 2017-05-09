@@ -40,45 +40,61 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 		return result;
 	},
 	    parser = "function(tag,$={},model={}) {\n\t\tfunction parse($,model) { with(model) {\n\t\t\ttry { return tag_src_; }\n\t\t\tcatch(e) { \n\t\t\t\tif(e instanceof ReferenceError) {\n\t\t\t\t\tvar key = e.message.trim().replace(/'/g,'').split(' ')[0];\n\t\t\t\t\tmodel[key] = (typeof(value)!=='undefined' ? value : '');\n\t\t\t\t\treturn parse($,model);\n\t\t\t\t} else throw(e); } } }\n\t\treturn parse($,model);\n\t}",
+	    activateProperty = function activateProperty(object, property) {
+		var viewmap = object.__views__;
+		if (!viewmap) {
+			_activate(object);return;
+		}
+		var getter = function getter() {
+			var value = desc.get ? desc.get.call(object) : desc.value;
+			if (typeof value !== "function") {
+				var views = viewmap.get(property);
+				if (!views) {
+					views = new Set();
+					viewmap.set(property, views);
+				}
+				views.add(CURRENTVIEW);
+			}
+			return value;
+		};
+		getter.feteActivated = true;
+		var desc = Object.getOwnPropertyDescriptor(object, property);
+		if (desc.get && desc.get.feteAcivated) return;
+		Object.defineProperty(object, property, {
+			enumerable: desc.enumerable,
+			get: getter,
+			set: function set(value) {
+				var me = this;
+				value = _activate(value);
+				if (desc.set) desc.set.call(object, value);else if (desc.writable) desc.value = value;
+				var views = viewmap.get(property);
+				!views || views.forEach(function (view) {
+					if (view && (view.parentElement || view.ownerElement)) {
+						view.model || view.use(me);
+						view.render();
+					} else views.delete(view); // garbage collect
+				});
+				return true;
+			}
+		});
+	},
 	    _activate = function _activate(object) {
 		if ((typeof object === "undefined" ? "undefined" : _typeof(object)) !== "object" || !object || object.__views__) return object;
 		if (Array.isArray(object)) {
 			//for(let i=0;i<object.length;i++) object[i] = activate(item[i]);
 			// elements are activated on get for performance reasons
-		} else Object.keys(object).forEach(function (key) {
-			return object[key] = _activate(object[key]);
-		});
-		var viewmap = new Map(),
-		    proxy = new Proxy(object, {
-			get: function get(target, property) {
-				if (property === "__views__") return viewmap;
-				var value = Array.isArray(target) ? _activate(target[property]) : target[property];
-				if (typeof value !== "function") {
-					var views = viewmap.get(property);
-					if (!views) {
-						views = new Set();
-						viewmap.set(property, views);
-					}
-					views.add(CURRENTVIEW);
-				}
-				return value;
-			},
-			set: function set(target, property, value) {
-				value = _activate(value);
-				if (target[property] !== value) {
-					target[property] = value;
-					var views = viewmap.get(property);
-					!views || views.forEach(function (view) {
-						if (view && (view.parentElement || view.ownerElement)) {
-							view.model || view.use(proxy);
-							view.render();
-						} else views.delete(view); // garbage collect
-					});
-				}
-				return true;
-			}
-		});
-		return proxy;
+			// should we return a Proxy here that will support trapping of new elements and activating??
+		} else {
+			var viewmap = new Map();
+			Object.defineProperty(object, "__views__", { enumerable: false, get: function get() {
+					return viewmap;
+				}, set: function set() {} });
+			Object.keys(object).forEach(function (property) {
+				object[property] = _activate(object[property]);
+				activateProperty(object, property);
+			});
+		}
+		return object;
 	},
 	    router = function router(event, next) {
 		var target = event.currentTarget,
@@ -388,6 +404,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 						} else if (me.type === "select-multiple") {
 							model[me.property] = [];
 						}
+						// since the property may have been undefined, activate it (no-op if already activated)
+						activateProperty(model, me.property);
 					}
 				}
 				if (me.interpolated) {

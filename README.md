@@ -37,6 +37,8 @@ See https://anywhichway.github.io/fete/
 
 # release history (reverse chronological order)
 
+2017-05-09 v1.3.0 Changed to property re-writes from Proxies for activating objects to handle more use cases.
+
 2017-04-26 v1.2.5 Documentation updates.
 
 2017-04-26 v1.2.4 Added template and custom tag transformations and tab control example.
