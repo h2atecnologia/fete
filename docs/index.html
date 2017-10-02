@@ -6,7 +6,7 @@
 <!--[if lt IE 9]>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.0/gh-fork-ribbon.ie.min.css" />
 <![endif]-->
-<script src="fete.es5.js">//../index.js fete.es5.js</script>
+<script src="../index.js">//../index.js fete.es5.js</script>
 </head>
 <body>
 <script>
@@ -86,7 +86,7 @@ Fete is a MIT licensed JavaScript <b>F</b>ront <b>E</b>nd reactive <b>TE</b>mpla
 </div>
 <div id="forEachDemoTemplates">
   <template id="forEachDemoTemplate">
-    <ul bind="${myData()}" forEach="${model}">
+    <ul f-bind="${myData()}" f-forEach="${model}">
       <li>${$.this[$.key]}</li>
     </ul>
   </template>
@@ -94,17 +94,17 @@ Fete is a MIT licensed JavaScript <b>F</b>ront <b>E</b>nd reactive <b>TE</b>mpla
 <div id="ifDemoTemplates">
   <template id="ifDemoTemplate">
     Show: <input type="checkbox" value="${show}">
-    <ul forEach="${data}" if="${show}">
+    <ul f-foreach="${data}" f-if="${show}">
       <li>${$.this[$.key]}</li>
     </ul>
   </template>
 </div>
 <div id="dynamicDemoTemplates">
 <template id="dynamic">
-${$.element("table")([$.element("tr")(headers.map((item) => $.element("th")(item))),$.element("tbody")(rows.map((row) => $.element("tr")(row.map((item) => $.element("td")(item)))))])}
+{$.element("table")([$.element("tr")(headers.map((item) => $.element("th")(item))),$.element("tbody")(rows.map((row) => $.element("tr")(row.map((item) => $.element("td")(item)))))])}
 </template>
 <template id="dynamicDemoTemplate">
- ${$.include("#dynamic",{headers,rows})}
+ {$.include("#dynamic",{headers,rows})}
 </template>
 </div>
 

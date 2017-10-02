@@ -4,22 +4,21 @@
 <script src="../../index.js"></script>
 </head>
 <body>
-<ul id="app" forEach="${items}">
-	<li>${model}</li>
+
+<ul id="app" foreach="${items}">
+	<li>${item}</li>
 </ul>
 
 <script>
 
 const fete = new Fete();
-	model = fete.mvc({items:[]},"#app");
-	
-//const model = fete.activate({items:[]});
-const items = fete.activate([]);
-for(let i=0;i<10000;i++) items.push("item - " + i);
+	model = fete.mvc({items:[1]},"#app");
+model.items.push(2)
+for(let i=0;i<100;i++) model.items.push("item - " + i);
 
 console.time("add 10000");
-model.items = items;
-//fete.mvc(model,"#app");
+model.items.splice(0,model.items.length);
+for(let i=0;i<10000;i++) model.items.push("item - " + i);
 console.timeEnd("add 10000");
 </script>
 </body>

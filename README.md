@@ -2,7 +2,7 @@
 Front End TEmplates - Light weight reactive JavaScript templates and routing
 
 <ul>
-<li>Small: ES6 16.8K raw, 9,75K minified, 3.6K gzipped; ES5 - Transpiled, minified, gzipped 4K.</li>
+<li>Small: ES6 16.8K raw, 9.75K minified, 3.6K gzipped; ES5 - Transpiled, minified, gzipped 4K.</li>
 <li>Base version works in recent releases of Chrome, Firefox, Edge. Transpiling not required.</li>
 <li>Zero dependencies</li>
 <li>Requires less boilerplate and set-up code than React, Angular, Vue, or Marko.</li>

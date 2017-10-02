@@ -20,13 +20,13 @@
     <p><input value="${title}" ></input></p>
      <p>${$.include("#table")}</p>
     List of ${paragraphs.length} paragraphs:
-    ${$.element("ul")(paragraphs.map(p => $.element("li")(p.title)))}
+    {$.element("ul")(paragraphs.map(p => $.element("li")(p.title)))}
     <p>${$.include("#footer",{test:"test"})}</p>
   </article>
 </div>
 
 <template id="table">
-	${$.element("table")(table.map(row => $.element("tr")(row.map(col => $.element("td")(col)))))}
+	{$.element("table")(table.map(row => $.element("tr")(row.map(col => $.element("td")(col)))))}
 </template>
 
 <script type="text/plain" id="tableTemplate">

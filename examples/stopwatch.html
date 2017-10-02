@@ -5,6 +5,10 @@
 
 <div id="display"></div>
 
+<template id="stopwatch">
+	${minutes}:${seconds}:${milliseconds}<br><input type="button" value="Start"> <input type="button" value="Stop"> <input type="button" value="Reset">
+</template>
+
 <script>
 class Stopwatch {
 	constructor() {
@@ -38,10 +42,14 @@ class Stopwatch {
 }
  
 const fete = new Fete(),
-	html = '${minutes}:${seconds}:${milliseconds}<br><input type="button" value="Start"> <input type="button" value="Stop"> <input type="button" value="Reset">',
-	controller = (e,m) => { let commands = {Start:"start",Stop:"stop",Reset:"reset"}; !commands[e.target.value] || m[commands[e.target.value]]()},
-	StopwatchDisplay = fete.createComponent("StopwatchDisplay",html,controller),
-	stopwatchDisplay = new StopwatchDisplay(new Stopwatch()).render("#display");
+	controller = (event,model) => { 
+		// map button labels to functions
+		let commands = {Start:"start",Stop:"stop",Reset:"reset"};
+		// turn the clicked button value into a function call on the model
+		!commands[event.target.value] || model[commands[event.target.value]]();
+	},
+	StopwatchView = fete.createComponent("StopwatchView","#stopwatch",controller);
+new StopwatchView(new Stopwatch()).render("#display");
 
 </script>
 <body>
