@@ -29,15 +29,15 @@
     <div id="app">
 	    <table class="latest-data table table-striped" width="100%" f-model="${data}">
 		    <tbody f-foreach="${databases}">
-		   		<tr f-let="${{db:model}}">
+		   		<tr f-let="${{db:value}}">
 			    	<td class=dbname width="20%">${db.dbname}</td>
 			    	<td class=query-count width="20%">
 			    		<span class="${db.lastSample.countClassName}">${db.lastSample.nbQueries}</span>
 			    	</td>
 			    	<td f-foreach="${db.lastSample.topFiveQueries}">
-						<div class="${model.elapsedClassName}" style="display:inline; width:500px">${model.formatElapsed}
+						<div class="${value.elapsedClassName}" style="display:inline; width:500px">${value.formatElapsed}
 							<div class="popover left" style="width:500px">
-				       			<div class="popover-content">${model.query}</div>
+				       			<div class="popover-content">${value.query}</div>
 				       			<div class="arrow"></div>
 				       		</div>
 			       		</div>
@@ -52,11 +52,11 @@
     <script src="../../index.js"></script>
     <script>
     ENV.timeout = 250;
-    const fete = new Fete();
+    //const fete = new Fete();
 	perfMonitor.startFPSMonitor()
 	perfMonitor.startMemMonitor()
 	perfMonitor.initProfiler("render")
-	fete.render({data:{databases:ENV.generateData(true).toArray()}},"#app");
+	Fete.mvc({data:{databases:ENV.generateData(true).toArray()}},"#app");
 	function run() {
 		perfMonitor.startProfile("render");
 		perfMonitor.endProfile("render");
