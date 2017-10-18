@@ -132,9 +132,10 @@
 		compileAux = function(root,elements) {
 			for(let child of [].slice.call(this.children)) compileAux.call(child,root,elements);
 			for(let attribute of [].slice.call(this.attributes)) {
-				if(attribute.name.indexOf("on")===0 && root[attribute.value]) {
+				if(attribute.name.indexOf("on")===0 && attribute.value.indexOf("feteComponent.")===0) {
+					const fname = attribute.value.split(".")[1];
 					this.removeAttribute(attribute.name);
-					this[attribute.name] =  root[attribute.value].bind(root);
+					this[attribute.name] =  root[fname].bind(root);
 				}
 			}
 			if(this.tagName==="F-ELEMENT") this.parentElement.replaceChild(elements[parseInt(this.innerText)],this);
@@ -149,9 +150,12 @@
 				
 		},
 		fetish = node => {
-			const ctor = elements[node.tagName];
-			!ctor || Object.setPrototypeOf(node,ctor.prototype);
-				!node.connectedCallback || node.connectedCallback();
+			if(node && node instanceof HTMLElement) {
+				const ctor = elements[node.tagName];
+				!ctor || Object.setPrototypeOf(node,ctor.prototype);
+				!node.connectedCallback || node.feteConnected || node.connectedCallback();
+				node.feteConnected = true;
+			}
 		},
 		onchange = event => {
 			const target = event.target;
@@ -171,7 +175,7 @@
 					target.setAttribute("value",JSON.stringify(values.feteData));
 					value = values.feteData;
 				}
-				target.getAttribute("f-reactive")==false || updateModel(attr,value);
+				target.getAttribute("f-reactive")==false || !attr || updateModel(attr,value);
 			}
 		},
 		oncbclick = event => {
@@ -231,7 +235,7 @@
    }else throw(err);
   }
  }while(true)`.replace(/__template__/g,"`"+template+"`");
-			NODE = ((node instanceof HTMLElement || node instanceof Text || node instanceof Attr) && node.rRndr ? node : null);
+			NODE = ((node instanceof HTMLElement || node instanceof Text || node instanceof Attr) && node.fRndr ? node : null);
 			const extrs = {};
 			if(NODE && node.attributes) {
 				const attributes = [].slice.call(node.attributes);
@@ -286,7 +290,7 @@
 			if(!target.hasAttribute("checked")) target.setAttribute("checked","");
 		},
 		updateModel = (node,value) => {
-			const template = (node && node.rRndr ? node.rRndr.template : null),
+			const template = (node && node.fRndr ? node.fRndr.template : null),
 				model = node.feteModel;
 			if(template && model) {
 				const property = propertyName(template);
@@ -295,12 +299,12 @@
 		},
 		renderAttr = function(model) {
 			const value = this.value;
-			if(!this.rRndr && (value.indexOf("${")>=0 || this.name.indexOf("f-")===0 || value.trim().indexOf("function")===0 || value.indexOf("=>")>=1)) {
-				this.rRndr = function rRndr(model) {
+			if(!this.fRndr && (value.indexOf("${")>=0 || this.name.indexOf("f-")===0 || value.trim().indexOf("function")===0 || value.indexOf("=>")>=1)) {
+				this.fRndr = function(model) {
 					if(this.fDrty===false) return;
 					this.fDrty = false;
 					Fete.use(this,model);
-					const value = parse(resolve.call(this,rRndr.template,this)),
+					const value = parse(resolve.call(this,this.fRndr.template,this)),
 						type = typeof(value);
 					this.feteData = value;
 					if(this.name==="value") this.ownerElement.value = value;
@@ -310,13 +314,14 @@
 						this.value = (type==="object" && value ? JSON.stringify(value) : value);
 					}
 				}
-				this.rRndr.template = this.value;
+				this.fRndr.template = this.value;
 				this.fDrty = true;
 			}
-			!this.rRndr || this.rRndr(model);
+			!this.fRndr || this.fRndr(model);
 		},
 		renderElement = function(model,controller) {
-			!this.connectedCallback || (this.connected && this.connected()) || this.connectedCallback();
+			//!this.connectedCallback || this.feteConnected || this.connectedCallback();
+			fetish(this);
 			let local, foreach;
 			const modelnode = this.getAttributeNode("f-model"); 
 			if(modelnode) {
@@ -354,8 +359,8 @@
 			}
 			const children = [].slice.call(this.childNodes);
 			if(foreach) {
-				if(!this.rRndr) {
-					this.rRndr = function(model,controller) {
+				if(!this.fRndr) {
+					this.fRndr = function(model,controller) {
 						while(this.lastChild) {
 							const node = this.lastChild;
 							if(node.fDpndts) {
@@ -380,7 +385,7 @@
 						}
 					}
 				}
-				this.rRndr(model,controller);
+				this.fRndr(model,controller);
 			} else {
 				for(let child of children) child instanceof Attr || Fete.render(child,model ? Object.assign(model,local) : local,controller);
 			}
@@ -400,20 +405,20 @@
 			}
 		},
 		renderText = function(model) {
-			if(!this.rRndr && this.textContent.indexOf("${")>=0) {
-				this.rRndr = function rRndr(model) {
+			if(!this.fRndr && this.textContent.indexOf("${")>=0) {
+				this.fRndr = function(model) {
 					if(this.fDrty===false) return;
 					this.fDrty = false;
 					Fete.use(this,model);
-					let value = parse(resolve.call({},rRndr.template,this)),
+					let value = parse(resolve.call({},this.fRndr.template,this)),
 						type = typeof(value);
 					value = (type==="string" ? value : (type==="function" ? value+"" : JSON.stringify(value)));
 					this.textContent = value;
 				}
-				this.rRndr.template = this.textContent;
+				this.fRndr.template = this.textContent;
 				this.fDrty = true;
 			}
-			!this.rRndr || this.rRndr(model);
+			!this.fRndr || this.fRndr(model);
 		},
 		Fete = {
 			compile(strings,...values) {
@@ -423,10 +428,13 @@
 				for(let i=0;i<strings.length;i++) {
 					const type = typeof(values[i]);
 					let value = values[i];
-					if(type==="function") value = values[i].name;
+					if(type==="function") {
+						!this[value.name] || (value = "feteComponent." + values[i].name);
+						//this[values[i].name] = values[i];
+					}
 					else if(value && type==="object" && value instanceof HTMLElement) {
-						value = "<f-element>" + elements.length + "</f-element>";
-						elements.push(values[i]);
+						elements.push(value);
+						value = "<f-element>" + (elements.length-1) + "</f-element>";
 					}
 					result += (strings[i] + (i<values.length ? value : ""));
 				}
@@ -448,11 +456,14 @@
 			},
 			h(tagName,attributes={},innerHTML) {
 				const node = document.createElement(tagName);
-				for(let attribute in attributes) {
-					const value = attributes[attribute],
+				for(let name in attributes) {
+					const value = attributes[name],
 						type = typeof(value);
-					if(type==="function") node[attribute] = value;
-					else node.setAttribute(attribute,attributes[attribute]);
+					if(type==="function") node[name] = value;
+					else {
+						node.setAttribute(name,attributes[name]);
+						if(name==="value" && typeof(node.value)==="undefined") node.value = value;
+					}
 				}
 				!innerHTML || (node.innerHTML = innerHTML);
 				return node;
@@ -498,7 +509,7 @@
 			},
 			render(node,model,controller) {
 				if(node instanceof Attr) renderAttr.bind(node)(model,controller);
-				else if(node instanceof HTMLElement) renderElement.bind(node)(model,controller);
+				else if(node instanceof HTMLElement && !(node instanceof HTMLTemplateElement) && !(node instanceof HTMLTextAreaElement)) renderElement.bind(node)(model,controller);
 				else if(node instanceof Text) renderText.bind(node)(model,controller);
 			},
 			styled(tagNameOrCtor) {
@@ -550,10 +561,8 @@
 		attributeChangedCallback(attributeName, oldValue, newValue, namespace) {
 			if(typeof(this[attributeName])!=="undefined" && this[attributeName]!==newValue) this[attributeName]=newValue;
 		}
-		connected() { 
-			return this.children.length>0;
-		}
 		connectedCallback() {
+			this.feteConnected  = true;
 			const attributes = [].slice.call(this.attributes);
 			for(let attribute of attributes) {
 				attribute.name.indexOf("f-")===0 || this.childNodes.length!==1 || this.firstChild!==this.childNodes[0] || this.firstChild.setAttribute(attribute.name,attribute.value);
@@ -563,7 +572,6 @@
 	Fete.Component = Component;
 	const register = document.registerElement;
 	document.registerElement = function(name,cls) {
-		document.addEventListener("load",Fete.initialize);
 		elements[name.toUpperCase()] = cls;
 		if(register) register.call(document,name,cls);
 		else document.createElement(name);

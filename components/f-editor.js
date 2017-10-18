@@ -35,8 +35,8 @@
 					attributes = [].slice.call(element.attributes).filter(attribute => !exclude || !exclude.includes(attribute.name));
 				for(let attribute of attributes) {
 					const value = Fete.parse(attribute.value);
-					if(["checked","hidden","selected","multiple"].includes(attribute.name) && (value || value==="")) map[attribute.name] = true;
-					map[attribute.name] = value;
+					if(["checked","hidden","selected","multiple","autosize","lazy"].includes(attribute.name) && (value || value==="")) map[attribute.name] = true;
+					else map[attribute.name] = value;
 				}
 				return map;
 			};
@@ -45,6 +45,7 @@
 			let type = this.type = attributes.type || "text";
 			type!=="string" || (type = "text");
 			this.label = attributes.label;
+			this.value || (this.value = attributes.value);
 			let element;
 			!options || (this._options = Fete.parse(options));
 			if(["text","number","date","color","file","email","password","tel","url","radio"].includes(type)) { //Fete.compile.bind(this)
@@ -53,6 +54,19 @@
 					${Object.keys(attributes).map(key => " " + key + "='" + attributes[key] + "'").join("")}
 				    >
 				`;
+			} else if(type==="textarea") {
+				Fete.compile.bind(this)`${(this.label ? (`<label>${this.label}</label>`) : "")}
+			    <textarea style="invalid:{border-color:red;}" onchange="${this.validate}" 
+				${Object.keys(attributes).map(key => " " + key + "='" + attributes[key] + "'").join("")}
+			    >${this.value}</textarea>
+				`;
+				const textarea = this.getElementsByTagName("textarea")[0];
+				if(attributes.autosize) {
+					this.addEventListener("keydown",event => {
+						event.target.style.height = event.target.scrollHeight+"px";
+					});
+					textarea.style.height = textarea.scrollHeight+"px"; //overflow:hidden;box-sizing:border-box;
+				}
 			} else if(type==="radiogroup") {
 				const me = this,
 					options = Fete.parse(this.getAttribute("options")),

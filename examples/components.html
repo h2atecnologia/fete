@@ -5,6 +5,9 @@
 <script src="../components/f-timer.js"></script>
 <script src="../components/f-editor.js"></script>
 <script src="../components/f-form.js"></script>
+<script src="../components/f-javascript-example.js"></script>
+<script src="../components/f-fete-example.js"></script>
+<script src="../components/f-html-example.js"></script>
 <script>
 
 
@@ -16,7 +19,7 @@ class TodoList extends Fete.Component {
         return false;
     }
     connectedCallback() {
-    	Fete.compile.bind(this)`<form onSubmit="${this.addTodo}" action="javascript:">
+    	Fete.compile.bind(this)`<form onsubmit="${this.addTodo}" action="javascript:">
             <input value="">
             <button type="submit">Add</button>
             <ul f-foreach="\${model}"}>
@@ -29,64 +32,50 @@ class TodoList extends Fete.Component {
 }
 document.registerElement("f-todolist",TodoList);
 
-class FeteScriptExample extends Fete.Component {
-	run() {
-		let result;
-		try {
-			result = Function(this.code.value)();
-			this.result.innerHTML = (typeof(result)!=="undefined" ? result : "");
-		} catch(e) {
-			this.error.innerText = e.stack;
-		}
-	}
-	connectedCallback() {
-		const text = this.innerText;
-		this.code = Fete.h("textarea");
-		this.result = Fete.h("span");
-		this.error = Fete.h("span");
-		Fete.compile.bind(this)`<form onSubmit="${this.run}" action="javascript:"><table border="1" style="border-collapse:collapse">
-			<tr><td style="width:50px"></td><td>Code</td><td>Result</td></tr>
-			<tr><td style="vertical-align:top"><button type="submit">Run</button></td>
-			<td style="vertical-align:top;width:45%">${this.code}</td>
-			<td style="vertical-align:top">${this.result}</td></tr>
-			</tr>
-			<tr><td>Errors</td><td colspan="2">${this.error}</td></tr></table></form>`;
-		this.code.value = text;
-		!this.hasAttribute("run") || this.run();
-	}
-}
-document.registerElement("f-script-example",FeteScriptExample);
 
 </script>
 </head>
-<body>
+<body onload="Fete.initialize()">
 
-style>input:invalid{border-color:red;}</style
-<div><f-timer minutes="5" border="1" style="border-collapse:collapse" running></f-timer></div>
+<f-timer minutes="5" border="1" style="border-collapse:collapse" running></f-timer>
 
-<f-form>
-<div>Checkbox: <input type="checkbox" checked></div>
-<div><select value="${[1,2]}" options="${[1,2,3]}" multiple><option>1</option><option>2</option></select></div>
-<div><input type="text" value="${name}" f-model='{"name":"S"}'></div>
-<div><f-editor type="text" value="test" options="${[1,2]}" label="One:"></f-editor></div>
-<div><f-editor type="number" value="1" max="3" label="Two:" label-style="align:top;color:green"  onChange="(e) => console.log(e)"></f-editor></div>
-<div><f-editor type="date" value="2017-10-08"></f-editor></div>
-<div><f-editor type="color"></f-editor></div>
-<div><f-editor type="radiogroup" options="${[{label:'Male',value:'male'},{label:'Female',value:'female'}]}"></f-editor></div>
-<div><f-editor type="select-one" options="${[{label:'Male',value:'male'},{label:'Female',value:'female'}]}" value="female"></f-editor></div>
-<div><f-editor type="select-multiple" options="${[{label:'Male',value:'male'},{label:'Female',value:'female'}]}" value="${['male','female']}"></f-editor></div>
-<button type="submit">Submit</button>
-</f-form>
+ <f-form>
+ <div>Checkbox: <input type="checkbox" checked></div>
+ <div><select value="${[1,2]}" options="${[1,2,3]}" multiple><option>1</option><option>2</option></select></div>
+ <div><input type="text" value="${name}" f-model='{"name":"S"}'></div>
+ <div><f-editor type="text" value="test" options="${[1,2]}" label="One:"></f-editor></div>
+ <div><f-editor type="number" value="1" max="3" label="Two:" label-style="align:top;color:green"  onChange="(e) => console.log(e)"></f-editor></div>
+ <div><f-editor type="date" value="2017-10-08"></f-editor></div>
+ <div><f-editor type="color"></f-editor></div>
+ <div><f-editor type="radiogroup" options="${[{label:'Male',value:'male'},{label:'Female',value:'female'}]}"></f-editor></div>
+ <div><f-editor type="select-one" options="${[{label:'Male',value:'male'},{label:'Female',value:'female'}]}" value="female"></f-editor></div>
+ <div><f-editor type="select-multiple" options="${[{label:'Male',value:'male'},{label:'Female',value:'female'}]}" value="${['male','female']}"></f-editor></div>
+ <div><f-editor type="textarea" value="Test text" autosize></f-editor></div>
+ <button type="submit">Submit</button>
+ </f-form>
 
-<f-todolist></f-todolist>
-<f-todolist f-model="${['a']}"></f-todolist>
+ <f-todolist></f-todolist>
+ <f-todolist f-model="${['a']}"></f-todolist>
 
-<f-script-example run>let text = "test"; return text;</f-script-example>
+ <div><f-javascript-example run>let text = "test"; return text;</f-javascript-example></div>
+<div><f-html-example run>
+<template>
+Name: <input type="text" value="${name}" f-model="${{'name':'Joe Jones'}}">
+</template>
+</f-html-example></div>
+ <div><f-fete-example run>
+ {
+  name:"Joe Jones",
+  age: 20
+ }
+ <template>
+ Name: ${name}<br>
+ Age: ${age}
+ </template></f-fete-example></div>
 
-</body>
 <script>
 
-Fete.initialize();
+//Fete.initialize();
 
 const Button = Fete.styled("button")`
 	background: palevioletred;
@@ -108,4 +97,6 @@ const TomatoEditor = Fete.styled("f-editor")`
 document.body.appendChild(TomatoEditor({value:"Tomato"}));
 
 </script>
+</body>
+
 </html>
